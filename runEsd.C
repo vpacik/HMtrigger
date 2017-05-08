@@ -37,7 +37,7 @@ void runEsd(){
   AliAnalysisManager *mgr = new AliAnalysisManager("Analysis");
 //  AliAODInputHandler* handler = new AliAODInputHandler();
   AliESDInputHandler* handler = new AliESDInputHandler();
-  // handler->SetReadFriends(kTRUE);
+  handler->SetReadFriends(kTRUE);
   mgr->SetInputEventHandler(handler);
 
 
