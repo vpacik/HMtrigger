@@ -45,7 +45,7 @@ class AliAnalysisTaskTrigHMTF : public AliAnalysisTaskSE {
     Bool_t              fIsPileupSPD;
     Bool_t              fIsIncomplete;
     Float_t             fT0A[5];
-    Float_t             fT0C[5];§
+    Float_t             fT0C[5];
     Float_t             fTVX[5];
     Float_t             fADATime;
     Float_t             fADCTime;
