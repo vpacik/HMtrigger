@@ -1,8 +1,18 @@
+# MacOS
+.DS_Store
+
+# Misc
+alice
+*.root
+*.pdf
+
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+*.d
+*.so
 
 # Precompiled Headers
 *.gch
