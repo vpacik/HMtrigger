@@ -1,10 +1,10 @@
-Bool_t local = kTRUE;
+Bool_t local = 0;
 
 // periods LHC 2016 datasets pp 13 TeV
 // LHC16k:  RunList_LHC16k_pass1_CentralBarrelTracking_electronPID_20170217_v2.txt [194 runs]
 TString dataDir = "/alice/data/2016/LHC16k";
 TString dataPattern = "/pass1/*/AliESDs.root";
-TString workingDir = "hmtrigger_16k_test";
+TString workingDir = "hm-16k-test";
 Int_t nRuns = 10; // 194;
 Int_t runList[] = {
   258537, 258499, 258477, 258456, 258454, 258452, 258426, 258393, 258391, 258387,
@@ -64,7 +64,7 @@ void runEsd(){
     plugin->SetRunMode("full");
     plugin->SetNtestFiles(2);
     plugin->SetAPIVersion("V1.1x");
-    plugin->SetAliPhysicsVersion("vAN-20170411-1");
+    plugin->SetAliPhysicsVersion("vAN-20170527-1");
     plugin->SetGridDataDir(dataDir.Data());
     plugin->SetDataPattern(dataPattern.Data());
     plugin->SetGridWorkingDir(workingDir.Data());
@@ -74,11 +74,12 @@ void runEsd(){
     plugin->SetAnalysisSource("AliAnalysisTaskTrigHMTF.cxx");
     plugin->SetAdditionalLibs("AliAnalysisTaskTrigHMTF.h AliAnalysisTaskTrigHMTF.cxx");
     plugin->SetNrunsPerMaster(1);
-    plugin->SetSplitMaxInputFileNumber(300);
+    plugin->SetSplitMaxInputFileNumber(200);
     plugin->SetMergeViaJDL();
     plugin->SetMaxMergeStages(1);
     plugin->SetOutputToRunNo(1);
-    plugin->SetTTL(86400);
+    // plugin->SetTTL(86400);
+    plugin->SetTTL(30000);
 
     mgr->SetGridHandler(plugin);
     mgr->PrintStatus();

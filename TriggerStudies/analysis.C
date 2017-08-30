@@ -193,11 +193,11 @@ void analysis()
   Int_t nWrong = 0;
   Bool_t tr[NTRIGGERS];
 
-  //  for (Int_t ev=0;ev<100000;ev++){
-  for (Int_t ev = 0; ev < fTree->GetEntries(); ev++)
+   for (Int_t ev=0;ev<50000;ev++)
+  // for (Int_t ev = 0; ev < fTree->GetEntries(); ev++)
   {
     fTree->GetEntry(ev);
-    if (ev % 100000 == 0) printf("Event=%10i Run=%i\n",ev, fRunNumber);
+    if (ev % 10000 == 0) printf("Event=%10i Run=%i\n",ev, fRunNumber);
 
     const char* srun = Form("%i",fRunNumber);
 
@@ -448,7 +448,7 @@ void analysis()
       hOfCL1norm->Fill(t,ofCL1norm,srun,1);
       hOnFORnorm->Fill(t,onFORnorm,srun,1);
       hOfFORnorm->Fill(t,ofFORnorm,srun,1);
-      
+
       if (t == 0)
       {
         if (fBC % 4 == 0) hOnFORvsOfFOR_sel_mod0->Fill(ofFOR,onFOR,srun,1);
