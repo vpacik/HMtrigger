@@ -65,11 +65,8 @@ void runEsd(){
   AliPhysicsSelectionTask* physSelTask= AddTaskPhysicsSelection(kFALSE,kTRUE);
 
   gROOT->LoadMacro("AliAnalysisTaskFilterTrigHMSPD.cxx+g");
-  AliAnalysisTaskFilterTrigHMSPD *ana = new AliAnalysisTaskFilterTrigHMSPD();
-  mgr->AddTask(ana);
-  AliAnalysisDataContainer *coutput1 = mgr->CreateContainer("events", TTree::Class(),AliAnalysisManager::kOutputContainer,"AnalysisResults.root");
-  mgr->ConnectInput  (ana, 0, mgr->GetCommonInputContainer());
-  mgr->ConnectOutput (ana, 1, coutput1);
+  gROOT->LoadMacro("AddTaskFilterTrigHMSPD.C");
+  AliAnalysisTaskFilterTrigHMSPD *ana = AddTaskFilterTrigHMSPD();
 
   if (!mgr->InitAnalysis()) return;
   if(local)
