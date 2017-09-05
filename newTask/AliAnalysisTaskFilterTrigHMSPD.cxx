@@ -1,5 +1,5 @@
 #include "AliAnalysisTaskFilterTrigHMSPD.h"
-#include "AliEventCuts.h"
+// #include "AliEventCuts.h"
 #include "AliESDInputHandler.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
@@ -319,9 +319,6 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 
   // const AliESDtrack* track = 0x0;
   AliESDtrack* track = 0x0;
-  Int_t nTracks = 0;
-
-
   std::vector<Float_t> vec;
 
   fNumTracks = fInputEvent->GetNumberOfTracks();
@@ -332,15 +329,14 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     if(!track) continue;
 
     vec.push_back(track->Pt());
-    nTracks++;
 
     //EXAMPLE: AliUpcParticle* part = new ((*fTracks)[fTracks->GetEntriesFast()]) Ali(pt,eta,phi,charge,label,21);
     // new( (*fTracks)[i] ) AliESDtrack(track); // working
   }
 
   // making array out of std::vector
-  Float_t* arr = &vec.at(0);
-  fTracksArr.Set(nTracks,arr);
+  if(vec.size() > 0) { fTracksArr.Set(vec.size(),&vec.at(0)); } else fTracksArr.Set(0);
+  printf("fTracksArr %d | vec.size(): %d\n",fTracksArr.GetSize(),vec.size());
 
   fTree->Fill();
   PostData(1,fList);
