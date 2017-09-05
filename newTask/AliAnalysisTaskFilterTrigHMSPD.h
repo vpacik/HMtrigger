@@ -68,9 +68,10 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
     Int_t               fNumTracks; // number of tracks
-    TClonesArray*       fTracks; //! ESD tracks
-    TClonesArray*       fTracksNano; //! ESD tracks
-
+    // TClonesArray*       fTracks; //! ESD tracks
+    // TClonesArray*       fTracksNano; //! ESD tracks
+    // std::vector<float>  fTracksVec; //
+    TArrayF             fTracksArr; //
 
 
   ClassDef(AliAnalysisTaskFilterTrigHMSPD,1);
