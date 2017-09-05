@@ -1,11 +1,12 @@
-Bool_t local = 1;
+Bool_t local = 0;
+Bool_t gridTest = 0;
 
 // periods LHC 2016 datasets pp 13 TeV
 // LHC16k:  RunList_LHC16k_pass1_CentralBarrelTracking_electronPID_20170217_v2.txt [194 runs]
 TString dataDir = "/alice/data/2016/LHC16k";
 TString dataPattern = "/pass1/*/AliESDs.root";
-TString workingDir = "hm-16k-test";
-Int_t nRuns = 10; // 194;
+TString workingDir = "hm-16k-test3";
+
 Int_t runList[] = {
   258537, 258499, 258477, 258456, 258454, 258452, 258426, 258393, 258391, 258387,
   258359, 258336, 258332, 258307, 258306, 258303, 258302, 258301, 258299, 258278,
@@ -28,6 +29,9 @@ Int_t runList[] = {
   256567, 256565, 256564, 256562, 256560, 256557, 256556, 256554, 256552, 256514,
   256512, 256510, 256506, 256504
 };
+
+Int_t nRuns = 5; // 194;
+// Int_t nRuns = sizeof(runList) / sizeof(runList[0]);
 
 void runEsd(){
   gSystem->AddIncludePath("-I. -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
@@ -71,13 +75,8 @@ void runEsd(){
   if (!mgr->InitAnalysis()) return;
   if(local)
   {
-
-  	if(local == true)
-  	{
-  		gROOT->ProcessLine(".include $ROOTSYS/include");
-  		gROOT->ProcessLine(".include $ALICE_ROOT/include");
-  	}
-
+		gROOT->ProcessLine(".include $ROOTSYS/include");
+		gROOT->ProcessLine(".include $ALICE_ROOT/include");
 
     printf("----- Running locally ------\n");
     TChain* chain = new TChain("esdTree");
@@ -88,30 +87,56 @@ void runEsd(){
   else
   {
     printf("----- Running on grid ------\n");
-    AliAnalysisAlien *plugin = new AliAnalysisAlien();
-    plugin->SetRunMode("full");
-    plugin->SetNtestFiles(2);
-    plugin->SetAPIVersion("V1.1x");
-    plugin->SetAliPhysicsVersion("vAN-20170527-1");
-    plugin->SetGridDataDir(dataDir.Data());
-    plugin->SetDataPattern(dataPattern.Data());
-    plugin->SetGridWorkingDir(workingDir.Data());
-    plugin->SetRunPrefix("000");
-    for (Int_t i=0;i<nRuns;i++)  plugin->AddRunNumber(runList[i]);
-    plugin->SetGridOutputDir("output");
-    plugin->SetAnalysisSource("AliAnalysisTaskFilterTrigHMSPD.cxx");
-    plugin->SetAdditionalLibs("AliAnalysisTaskFilterTrigHMSPD.h AliAnalysisTaskFilterTrigHMSPD.cxx");
-    plugin->SetNrunsPerMaster(1);
-    plugin->SetSplitMaxInputFileNumber(200);
-    plugin->SetMergeViaJDL();
-    plugin->SetMaxMergeStages(1);
-    plugin->SetOutputToRunNo(1);
-    // plugin->SetTTL(86400);
-    plugin->SetTTL(30000);
+    // if we want to run on grid, we create and configure the plugin
+    AliAnalysisAlien *alienHandler = new AliAnalysisAlien();
+    // also specify the include (header) paths on grid
+    alienHandler->AddIncludePath("-I$ROOTSYS/include -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
+    // make sure your source files get copied to grid
+    alienHandler->SetAdditionalLibs("AliAnalysisTaskFilterTrigHMSPD.cxx AliAnalysisTaskFilterTrigHMSPD.h");
+    alienHandler->SetAnalysisSource("AliAnalysisTaskFilterTrigHMSPD.cxx");
+    // select the aliphysics version. all other packages
+    // are LOADED AUTOMATICALLY!
+    alienHandler->SetAliPhysicsVersion("vAN-20170820-1");
+    //alienHandler->SetAliPhysicsVersion("vAN-20160131-1");
+    // select the input data
+    alienHandler->SetGridDataDir(dataDir);
+    alienHandler->SetDataPattern(dataPattern);
+    // MC has no prefix, data has prefix 000
+    alienHandler->SetRunPrefix("000");
+    // runnumber
 
-    mgr->SetGridHandler(plugin);
-    mgr->PrintStatus();
-    mgr->StartAnalysis("grid");
-    //mgr->StartAnalysis("full");
+    for (Int_t i = 0; i < nRuns; i++) { alienHandler->AddRunNumber(runList[i]); }
+
+    alienHandler->SetMasterResubmitThreshold(90);
+    // number of files per subjob
+    alienHandler->SetSplitMaxInputFileNumber(150);
+    // alienHandler->SetExecutable("FlowPID.sh");
+    // specify how many seconds your job may take
+    alienHandler->SetTTL(20000);
+    // alienHandler->SetJDLName("FlowPID.jdl");
+    alienHandler->SetPrice(1);
+    alienHandler->SetOutputToRunNo(kTRUE);
+    alienHandler->SetKeepLogs(kTRUE);
+
+    alienHandler->SetMaxMergeStages(1);
+    alienHandler->SetMergeViaJDL(kTRUE);
+
+    // define the output folders
+    alienHandler->SetGridWorkingDir(workingDir);
+    alienHandler->SetGridOutputDir("output");
+
+    // connect the alien plugin to the manager
+    mgr->SetGridHandler(alienHandler);
+    if(gridTest) {
+        // speficy on how many files you want to run
+        alienHandler->SetNtestFiles(10);
+        // and launch the analysis
+        alienHandler->SetRunMode("test");
+        mgr->StartAnalysis("grid");
+    } else {
+        // else launch the full grid analysis
+        alienHandler->SetRunMode("full");
+        mgr->StartAnalysis("grid");
+    }
   }
 }
