@@ -67,6 +67,10 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Double_t            fVtxZ; // primary vertex z-coordinate
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
+    Int_t               fNumTracks; // number of tracks
+    TClonesArray*       fTracks; //! ESD tracks
+    TClonesArray*       fTracksNano; //! ESD tracks
+
 
 
   ClassDef(AliAnalysisTaskFilterTrigHMSPD,1);

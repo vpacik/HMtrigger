@@ -2,6 +2,8 @@
 #include "AliEventCuts.h"
 #include "AliESDInputHandler.h"
 #include "AliESDEvent.h"
+#include "AliESDtrack.h"
+#include "AliNanoAODTrack.h"
 #include "AliESDVZERO.h"
 #include "AliESDVZEROfriend.h"
 #include "AliESDTZERO.h"
@@ -70,7 +72,8 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fVtxX(0),
   fVtxY(0),
   fVtxZ(0),
-  fVtxTPC(kFALSE)
+  fVtxTPC(kFALSE),
+  fNumTracks(-1)
 {
   DefineInput(0,TChain::Class());
   DefineOutput(1,TList::Class());
@@ -85,6 +88,10 @@ AliAnalysisTaskFilterTrigHMSPD::~AliAnalysisTaskFilterTrigHMSPD()
 //-----------------------------------------------------------------------------
 void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
 {
+  // fTracks = new TClonesArray("AliNanoAODTrack",100);
+  fTracks = new TClonesArray("AliESDtrack",100);
+  fTracksNano = new TClonesArray("AliNanoAODTrack",100);
+
   fList = new TList();
   fList->SetOwner(kTRUE);
   fhEventCounter = new TH1F("fhEventCounter","fhEventCounter",1,0,1);
@@ -139,6 +146,10 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fVtxY",&fVtxY);
   fTree->Branch("fVtxZ",&fVtxZ);
   fTree->Branch("fVtxTPC",&fVtxTPC);
+
+  fTree->Branch("fNumTracks",&fNumTracks);
+  fTree->Branch("fTracks",&fTracks);
+  fTree->Branch("fTracksNano",&fTracksNano);
 
   PostData(1,fList);
   PostData(2,fTree);
@@ -296,6 +307,35 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fVtxY   = vertex->GetY();
     fVtxZ   = vertex->GetZ();
     fVtxTPC = TString(vertex->GetName()).CompareTo("PrimaryVertex") && TString(vertex->GetName()).CompareTo("SPDVertex");
+  }
+
+  fTracks->Clear("C");
+  fTracksNano->Clear("C");
+
+  // const AliESDtrack* track = 0x0;
+  AliESDtrack* track = 0x0;
+
+
+  fNumTracks = fInputEvent->GetNumberOfTracks();
+  for(Int_t i(0); i < fNumTracks; i++)
+  {
+    // track = (const AliESDtrack*) fInputEvent->GetTrack(i);
+    track = (AliESDtrack*) fInputEvent->GetTrack(i);
+    if(!track) continue;
+
+    //EXAMPLE: AliUpcParticle* part = new ((*fTracks)[fTracks->GetEntriesFast()]) Ali(pt,eta,phi,charge,label,21);
+    new( (*fTracks)[i] ) AliESDtrack(track); // working
+
+
+    // AliNanoAODTrack* nanoTrack = new AliNanoAODTrack("pt");
+    // if(nanoTrack) nanoTrack->SetPt(2.);
+
+    // new( (*fTracks)[i] ) AliNanoAODTrack();
+
+    // new( (*fTracks)[i] ) AliNanoAODTrack("pt");
+    // ((AliNanoAODTrack*)fTracks->At(i))->SetPt(2);
+
+    // new( (*fTracks)[fTracks->GetEntriesFast()] ) (AliESDTrack*) track;
   }
 
 
