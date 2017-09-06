@@ -24,15 +24,11 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     TList*              fList; //! output TList
     TH1D*               fhEventCounter; //! Event counter
-    TH1D*               fhTrackPt; //! Track pt dist
-
 
     TTree*              fTree; //! output TTree
-    TObjString          fClassesFired; // list of fired trigger classes
+    TObjString*          fClassesFired; // list of fired trigger classes
     UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
     Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
-    // Bool_t              fIsINT7; // passes kINT7
-    // Bool_t              fIsSH2; // passes kSH2
     Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
     TObjString*         fChunkFileName; // current file name
     Int_t               fEventInFile; // current event number in the file
@@ -76,9 +72,9 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
     Int_t               fNumTracks; // number of tracks
-    TArrayD             fTracksPt; // (binned) pt distribution of tracks
+    TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
 
 
-  ClassDef(AliAnalysisTaskFilterTrigHMSPD,1);
+  ClassDef(AliAnalysisTaskFilterTrigHMSPD,2);
 };
 #endif

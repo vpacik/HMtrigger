@@ -27,13 +27,10 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fTracksPtUpEdge(100.),
   fList(0x0),
   fhEventCounter(0x0),
-  fhTrackPt(0x0),
   fTree(0x0),
-  fClassesFired(),
+  fClassesFired(new TObjString()),
   fPhysSelDecision(0),
   fPhysSelPassed(kFALSE),
-  // fIsINT7(kFALSE),
-  // fIsSH2(kFALSE),
   fEventCutsPassed(kFALSE),
   fChunkFileName(new TObjString()),
   fEventInFile(-1),
@@ -75,7 +72,7 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fVtxZ(0),
   fVtxTPC(kFALSE),
   fNumTracks(-1),
-  fTracksPt()
+  fTracksPt(0x0)
 {
   DefineInput(0,TChain::Class());
   DefineOutput(1,TList::Class());
@@ -90,25 +87,17 @@ AliAnalysisTaskFilterTrigHMSPD::~AliAnalysisTaskFilterTrigHMSPD()
 //-----------------------------------------------------------------------------
 void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
 {
-  // fTracks = new TClonesArray("AliNanoAODTrack",100);
-  // fTracks = new TClonesArray("AliESDtrack",100);
-  // fTracksNano = new TClonesArray("AliNanoAODTrack",100);
-
-  fTracksPt.Set(fTracksPtNumBins);
+  fTracksPt = new TArrayD(fTracksPtNumBins);
 
   fList = new TList();
   fList->SetOwner(kTRUE);
   fhEventCounter = new TH1D("fhEventCounter","fhEventCounter",1,0,1);
   fList->Add(fhEventCounter);
-  fhTrackPt = new TH1D("fhTrackPt","fhTrackPt",fTracksPtNumBins,fTracksPtLowEdge,fTracksPtUpEdge);
-  fList->Add(fhTrackPt);
 
   fTree = new TTree("events","events");
   fTree->Branch("fClassesFired",&fClassesFired);
   fTree->Branch("fPhysSelDecision",&fPhysSelDecision);
   fTree->Branch("fPhysSelPassed",&fPhysSelPassed);
-  // fTree->Branch("fIsINT7",&fIsINT7);
-  // fTree->Branch("fIsSH2",&fIsSH2);
   fTree->Branch("fEventCutsPassed",&fEventCutsPassed);
   fTree->Branch("fChunkFileName",&fChunkFileName);
   fTree->Branch("fEventInFile",&fEventInFile);
@@ -120,14 +109,10 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fL1inputs",&fL1inputs);
   fTree->Branch("fIR1",&fIR1);
   fTree->Branch("fIR2",&fIR2);
-
-  fTree->Branch("fNumTracklets",&fNumTracklets);
   fTree->Branch("fFiredChipMap",&fFiredChipMap);
   fTree->Branch("fFiredChipMapFO",&fFiredChipMapFO);
   fTree->Branch("fNumITSCls",&fNumITSCls,"fNumITSCls[6]/I");
-
   fTree->Branch("fTriggerMaskTOF",&fTriggerMaskTOF,"fTriggerMask[72]/I");
-
   fTree->Branch("fV0ATotMult",&fV0ATotMult);
   fTree->Branch("fV0CTotMult",&fV0CTotMult);
   fTree->Branch("fV0ATime",&fV0ATime);
@@ -152,10 +137,9 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fVtxY",&fVtxY);
   fTree->Branch("fVtxZ",&fVtxZ);
   fTree->Branch("fVtxTPC",&fVtxTPC);
-
+  fTree->Branch("fNumTracklets",&fNumTracklets);
   fTree->Branch("fNumTracks",&fNumTracks);
   fTree->Branch("fTracksPt",&fTracksPt);
-
 
   PostData(1,fList);
   PostData(2,fTree);
@@ -168,15 +152,15 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fhEventCounter->Fill("Input",1);
 
   // Events
-  fClassesFired.SetString(fInputEvent->GetFiredTriggerClasses());
+  fClassesFired->SetString(fInputEvent->GetFiredTriggerClasses());
 
   // skipping not interesting events (in this case: anything else than kINT7 and HM events)
-  if (!fClassesFired.String().Contains("CINT7-B-NOPF-CENT") &&
-      !fClassesFired.String().Contains("CINT7-B-NOPF-ALL") &&
-      !fClassesFired.String().Contains("CINT7-I-NOPF-CENT") &&
-      !fClassesFired.String().Contains("CVHMV0M-B") &&
-      !fClassesFired.String().Contains("CVHMSH1-B") &&
-      !fClassesFired.String().Contains("CVHMSH2-B")
+  if (!fClassesFired->String().Contains("CINT7-B-NOPF-CENT") &&
+      !fClassesFired->String().Contains("CINT7-B-NOPF-ALL") &&
+      !fClassesFired->String().Contains("CINT7-I-NOPF-CENT") &&
+      !fClassesFired->String().Contains("CVHMV0M-B") &&
+      !fClassesFired->String().Contains("CVHMSH1-B") &&
+      !fClassesFired->String().Contains("CVHMSH2-B")
   ) {
     PostData(1,fList);
     PostData(2,fTree);
@@ -315,22 +299,20 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fVtxTPC = TString(vertex->GetName()).CompareTo("PrimaryVertex") && TString(vertex->GetName()).CompareTo("SPDVertex");
   }
 
-  fTracksPt.Reset();
+  fTracksPt->Reset();
 
   Short_t index = -1;
   AliESDtrack* track = 0x0;
   fNumTracks = fInputEvent->GetNumberOfTracks();
   for(Int_t i(0); i < fNumTracks; i++)
   {
-    // track = (const AliESDtrack*) fInputEvent->GetTrack(i);
     track = (AliESDtrack*) fInputEvent->GetTrack(i);
     if(!track) continue;
 
     index = GetPtBinIndex(track->Pt());
     if(index == -1) continue;
 
-    fTracksPt.AddAt(fTracksPt.At(index)+1,index);
-    fhTrackPt->Fill(track->Pt());
+    fTracksPt->AddAt(fTracksPt->At(index)+1,index);
 
     //EXAMPLE: AliUpcParticle* part = new ((*fTracks)[fTracks->GetEntriesFast()]) Ali(pt,eta,phi,charge,label,21);
     // new( (*fTracks)[i] ) AliESDtrack(track); // working

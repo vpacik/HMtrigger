@@ -1,11 +1,11 @@
-Bool_t local = 0;
+Bool_t local = 1;
 Bool_t gridTest = 0;
 
 // periods LHC 2016 datasets pp 13 TeV
 // LHC16k:  RunList_LHC16k_pass1_CentralBarrelTracking_electronPID_20170217_v2.txt [194 runs]
 TString dataDir = "/alice/data/2016/LHC16k";
 TString dataPattern = "/pass1/*/AliESDs.root";
-TString workingDir = "hm-16k-test3";
+TString workingDir = "hm-16k";
 
 Int_t runList[] = {
   258537, 258499, 258477, 258456, 258454, 258452, 258426, 258393, 258391, 258387,
@@ -30,8 +30,8 @@ Int_t runList[] = {
   256512, 256510, 256506, 256504
 };
 
-Int_t nRuns = 5; // 194;
-// Int_t nRuns = sizeof(runList) / sizeof(runList[0]);
+// Int_t nRuns = 5; // 194;
+Int_t nRuns = sizeof(runList) / sizeof(runList[0]);
 
 void runEsd(){
   gSystem->AddIncludePath("-I. -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
@@ -109,7 +109,10 @@ void runEsd(){
 
     alienHandler->SetMasterResubmitThreshold(90);
     // number of files per subjob
-    alienHandler->SetSplitMaxInputFileNumber(150);
+    alienHandler->SetSplitMaxInputFileNumber(300);
+    // number of runs per master
+    alienHandler->SetNrunsPerMaster(1);
+
     // alienHandler->SetExecutable("FlowPID.sh");
     // specify how many seconds your job may take
     alienHandler->SetTTL(20000);
