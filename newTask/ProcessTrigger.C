@@ -1,7 +1,8 @@
 void ProcessTrigger()
 {
   // parameters
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
+  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -64,6 +65,7 @@ void ProcessTrigger()
   Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
   Int_t               fNumTracks; // number of tracks
   TArrayF*             fTracksArr = 0x0; // tracks array
+  TArrayD*             fTracksPt = 0x0; // binned tracks pt
 
   eventTree->SetBranchAddress("fClassesFired",&fClassesFired);
   eventTree->SetBranchAddress("fPhysSelDecision",&fPhysSelDecision);
@@ -110,11 +112,13 @@ void ProcessTrigger()
   eventTree->SetBranchAddress("fVtxTPC",&fVtxTPC);
   eventTree->SetBranchAddress("fNumTracks",&fNumTracks);
   eventTree->SetBranchAddress("fTracksArr",&fTracksArr);
+  eventTree->SetBranchAddress("fTracksPt",&fTracksPt);
 
   // tree ready
 
 
-  TH1D* hTrackPt = new TH1D("hTrackPt","hTrackPt",1000,0,100);
+  TH1D* hTrackPt = new TH1D("hTrackPt","hTrackPt",100,0,100);
+  TH1D* hTrackPt2 = new TH1D("hTrackPt2","hTrackPt2",100,0,100);
 
 
 
@@ -130,13 +134,23 @@ void ProcessTrigger()
 
     // printf("RunNumber: %d\n",fRunNumber);
 
-    for(Int_t j(0); j < fTracksArr->GetSize(); j++)
+    for(Int_t k(0); k < fTracksArr->GetSize(); k++)
     {
-      hTrackPt->Fill(fTracksArr->GetAt(j));
+      hTrackPt->Fill(fTracksArr->GetAt(k));
     }
+
+    for(Short_t j(0); j < 100; j++)
+    {
+      hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
+    }
+
+
   }
 
-  hTrackPt->Draw();
+  hTrackPt->SetMarkerStyle(kOpenCircle);
+  hTrackPt->Draw("e1");
+  hTrackPt2->SetLineColor(kRed);
+  hTrackPt2->Draw("same e");
 
   return;
 }
