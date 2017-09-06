@@ -115,7 +115,6 @@ void ProcessTrigger()
   // tree ready
 
 
-  TH1D* hTrackPt = (TH1D*) histos->FindObject("fhTrackPt");
   TH1D* hTrackPt2 = new TH1D("hTrackPt2","hTrackPt2",100,0,100);
 
 
@@ -137,14 +136,9 @@ void ProcessTrigger()
     {
       hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
     }
-
-
   }
 
-  hTrackPt->SetMarkerStyle(kOpenCircle);
-  hTrackPt->Draw("e1");
-  hTrackPt2->SetLineColor(kRed);
-  hTrackPt2->Draw("same e");
+  hTrackPt2->Draw("e");
 
   return;
 }
