@@ -64,7 +64,6 @@ void ProcessTrigger()
   Double_t            fVtxZ; // primary vertex z-coordinate
   Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
   Int_t               fNumTracks; // number of tracks
-  TArrayF*             fTracksArr = 0x0; // tracks array
   TArrayD*             fTracksPt = 0x0; // binned tracks pt
 
   eventTree->SetBranchAddress("fClassesFired",&fClassesFired);
@@ -111,13 +110,12 @@ void ProcessTrigger()
   eventTree->SetBranchAddress("fVtxZ",&fVtxZ);
   eventTree->SetBranchAddress("fVtxTPC",&fVtxTPC);
   eventTree->SetBranchAddress("fNumTracks",&fNumTracks);
-  eventTree->SetBranchAddress("fTracksArr",&fTracksArr);
   eventTree->SetBranchAddress("fTracksPt",&fTracksPt);
 
   // tree ready
 
 
-  TH1D* hTrackPt = new TH1D("hTrackPt","hTrackPt",100,0,100);
+  TH1D* hTrackPt = (TH1D*) histos->FindObject("fhTrackPt");
   TH1D* hTrackPt2 = new TH1D("hTrackPt2","hTrackPt2",100,0,100);
 
 
@@ -134,10 +132,6 @@ void ProcessTrigger()
 
     // printf("RunNumber: %d\n",fRunNumber);
 
-    for(Int_t k(0); k < fTracksArr->GetSize(); k++)
-    {
-      hTrackPt->Fill(fTracksArr->GetAt(k));
-    }
 
     for(Short_t j(0); j < 100; j++)
     {
