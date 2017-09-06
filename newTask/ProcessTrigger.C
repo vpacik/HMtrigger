@@ -1,7 +1,7 @@
 void ProcessTrigger()
 {
   // parameters
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults_large.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -113,19 +113,30 @@ void ProcessTrigger()
 
   // tree ready
 
+
+  TH1D* hTrackPt = new TH1D("hTrackPt","hTrackPt",1000,0,100);
+
+
+
+
   // looping over entries
   Int_t numEvents = eventTree->GetEntriesFast();
+  printf("Found %d events\n",numEvents);
   for (Int_t i(0); i < numEvents; i++)
   {
-    if(i > 10) break;
+    if(i > 50000) break;
+    if( (i % 5000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
 
-    printf("RunNumber: %d\n",fRunNumber);
+    // printf("RunNumber: %d\n",fRunNumber);
 
+    for(Int_t j(0); j < fTracksArr->GetSize(); j++)
+    {
+      hTrackPt->Fill(fTracksArr->GetAt(j));
+    }
+  }
 
-   }
-
-
+  hTrackPt->Draw();
 
   return;
 }
