@@ -15,8 +15,16 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     AliEventCuts        fEventCuts; /// Event cuts
   protected:
+
+    Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
+
+    Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
+    Float_t             fTracksPtLowEdge; // low edge of pt (binned) dist
+    Float_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
+
     TList*              fList; //! output TList
-    TH1F*               fhEventCounter; //! Event counter
+    TH1D*               fhEventCounter; //! Event counter
+    TH1D*               fhTrackPt; //! Track pt dist
 
 
     TTree*              fTree; //! output TTree
@@ -68,10 +76,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
     Int_t               fNumTracks; // number of tracks
-    // TClonesArray*       fTracks; //! ESD tracks
-    // TClonesArray*       fTracksNano; //! ESD tracks
-    // std::vector<float>  fTracksVec; //
-    TArrayF             fTracksArr; //
+    TArrayD             fTracksPt; // (binned) pt distribution of tracks
 
 
   ClassDef(AliAnalysisTaskFilterTrigHMSPD,1);

@@ -3,13 +3,10 @@
 #include "AliESDInputHandler.h"
 #include "AliESDEvent.h"
 #include "AliESDtrack.h"
-#include "AliNanoAODTrack.h"
 #include "AliESDVZERO.h"
 #include "AliESDVZEROfriend.h"
 #include "AliESDTZERO.h"
 #include "AliVVZERO.h"
-#include "AliVAD.h"
-
 
 // root
 #include "TChain.h"
@@ -25,8 +22,12 @@ ClassImp(AliAnalysisTaskFilterTrigHMSPD)
 AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name) :
   AliAnalysisTaskSE(name),
   fEventCuts(),
+  fTracksPtNumBins(100),
+  fTracksPtLowEdge(0.),
+  fTracksPtUpEdge(100.),
   fList(0x0),
   fhEventCounter(0x0),
+  fhTrackPt(0x0),
   fTree(0x0),
   fClassesFired(),
   fPhysSelDecision(0),
@@ -74,7 +75,7 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fVtxZ(0),
   fVtxTPC(kFALSE),
   fNumTracks(-1),
-  fTracksArr()
+  fTracksPt()
 {
   DefineInput(0,TChain::Class());
   DefineOutput(1,TList::Class());
@@ -93,10 +94,14 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   // fTracks = new TClonesArray("AliESDtrack",100);
   // fTracksNano = new TClonesArray("AliNanoAODTrack",100);
 
+  fTracksPt.Set(fTracksPtNumBins);
+
   fList = new TList();
   fList->SetOwner(kTRUE);
-  fhEventCounter = new TH1F("fhEventCounter","fhEventCounter",1,0,1);
+  fhEventCounter = new TH1D("fhEventCounter","fhEventCounter",1,0,1);
   fList->Add(fhEventCounter);
+  fhTrackPt = new TH1D("fhTrackPt","fhTrackPt",fTracksPtNumBins,fTracksPtLowEdge,fTracksPtUpEdge);
+  fList->Add(fhTrackPt);
 
   fTree = new TTree("events","events");
   fTree->Branch("fClassesFired",&fClassesFired);
@@ -149,9 +154,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fVtxTPC",&fVtxTPC);
 
   fTree->Branch("fNumTracks",&fNumTracks);
-  // fTree->Branch("fTracks",&fTracks);
-  // fTree->Branch("fTracksNano",&fTracksNano);
-  fTree->Branch("fTracksArr",&fTracksArr);
+  fTree->Branch("fTracksPt",&fTracksPt);
 
 
   PostData(1,fList);
@@ -312,15 +315,10 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fVtxTPC = TString(vertex->GetName()).CompareTo("PrimaryVertex") && TString(vertex->GetName()).CompareTo("SPDVertex");
   }
 
-  // fTracks->Clear("C");
-  // fTracksNano->Clear("C");
-  // fTracksVec.clear();
-  // printf("vec: %d\n",fTracksVec.size());
+  fTracksPt.Reset();
 
-  // const AliESDtrack* track = 0x0;
+  Short_t index = -1;
   AliESDtrack* track = 0x0;
-  std::vector<Float_t> vec;
-
   fNumTracks = fInputEvent->GetNumberOfTracks();
   for(Int_t i(0); i < fNumTracks; i++)
   {
@@ -328,15 +326,15 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     track = (AliESDtrack*) fInputEvent->GetTrack(i);
     if(!track) continue;
 
-    vec.push_back(track->Pt());
+    index = GetPtBinIndex(track->Pt());
+    if(index == -1) continue;
+
+    fTracksPt.AddAt(fTracksPt.At(index)+1,index);
+    fhTrackPt->Fill(track->Pt());
 
     //EXAMPLE: AliUpcParticle* part = new ((*fTracks)[fTracks->GetEntriesFast()]) Ali(pt,eta,phi,charge,label,21);
     // new( (*fTracks)[i] ) AliESDtrack(track); // working
   }
-
-  // making array out of std::vector
-  if(vec.size() > 0) { fTracksArr.Set(vec.size(),&vec.at(0)); } else fTracksArr.Set(0);
-  printf("fTracksArr %d | vec.size(): %d\n",fTracksArr.GetSize(),vec.size());
 
   fTree->Fill();
   PostData(1,fList);
@@ -346,4 +344,11 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 void AliAnalysisTaskFilterTrigHMSPD::Terminate(Option_t *)
 {
 
+}
+//-----------------------------------------------------------------------------
+Short_t AliAnalysisTaskFilterTrigHMSPD::GetPtBinIndex(Double_t pt)
+{
+  if( pt < fTracksPtLowEdge || pt >= fTracksPtUpEdge ) return -1;
+  Double_t dBinWidth = (fTracksPtUpEdge - fTracksPtLowEdge)/fTracksPtNumBins;
+  return (Short_t) (pt / dBinWidth);
 }
