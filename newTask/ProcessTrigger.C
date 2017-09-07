@@ -1,12 +1,16 @@
 
 void AddArrToHist(TArrayD* arr, TH1D* hist);
+TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
+Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 void ProcessTrigger()
 {
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults_BK.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
+  Int_t iNumEventsToProcess = 30000; // number of events to be processed; if -1 all are processed
+
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -137,6 +141,12 @@ void ProcessTrigger()
   TH1D* hPtCVHMSH2All = new TH1D("hPtCVHMSH2All","Pt dist (CVHMSH2)",100,0,100);
   TH1D* hPtCVHMSH2AllPhysSel = new TH1D("hPtCVHMSH2AllPhysSel","Pt dist (CVHMSH2)",100,0,100);
   TH1D* hPtCVHMSH2AllPhysSelEventCuts = new TH1D("hPtCVHMSH2AllPhysSelEventCuts","Pt dist (CVHMSH2)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90 = new TH1D("hPtCVHMSH2Thrs90","Pt dist (CVHMSH2|above 90%)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90PhysSel = new TH1D("hPtCVHMSH2Thrs90PhysSel","Pt dist (CVHMSH2|above 90%)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs90PhysSelEventCuts","Pt dist (CVHMSH2|above 90%)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95 = new TH1D("hPtCVHMSH2Thrs95","Pt dist (CVHMSH2|above 95%)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95PhysSel = new TH1D("hPtCVHMSH2Thrs95PhysSel","Pt dist (CVHMSH2|above 95%)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs95PhysSelEventCuts","Pt dist (CVHMSH2|above 95%)",100,0,100);
 
 
 
@@ -156,8 +166,8 @@ void ProcessTrigger()
   for (Int_t i(0); i < numEvents; i++)
   {
     // if(i > 5) break;
-    if(i > 50000) break;
-    if( (i % 5000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
+    if( iNumEventsToProcess >= 0 && i > iNumEventsToProcess) break;
+    if( (i % 10000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
     hEventCounter->Fill("Input",1);
 
@@ -189,40 +199,100 @@ void ProcessTrigger()
     if(bIsCINT7)
     {
       hEventMultINT7->Fill(fNumTracks);
-      AddArrToHist(fTracksPt,hPtCINT7All);
+      // AddArrToHist(fTracksPt,hPtCINT7All);
 
       if(fPhysSelPassed)
       {
         hEventMultINT7PhysSel->Fill(fNumTracklets);
-        AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
+        // AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
       }
 
       if(fPhysSelPassed && fEventCutsPassed)
       {
         hEventMultINT7PhysSelEventCuts->Fill(fNumTracklets);
-        AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
+        // AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
       }
     }
 
     if(bIsCVHMSH2)
     {
       hEventMultCVHMSH2->Fill(fNumTracks);
-      AddArrToHist(fTracksPt,hPtCVHMSH2All);
+      // AddArrToHist(fTracksPt,hPtCVHMSH2All);
 
       if(fPhysSelPassed)
       {
         hEventMultCVHMSH2PhysSel->Fill(fNumTracklets);
-        AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
+        // AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
       }
 
       if(fPhysSelPassed && fEventCutsPassed)
       {
         hEventMultCVHMSH2PhysSelEventCuts->Fill(fNumTracklets);
-        AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
+        // AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
       }
     }
 
   }
+
+  // obtaining efficiency, threshold, turn-on
+  TH1D* hEffPhysSel = GetEfficiency(hEventMultCVHMSH2PhysSel,hEventMultINT7PhysSel);
+  hEffPhysSel->SetNameTitle("hEffCVHMSH2CINT7PhysSel","Efficiency CVHMSH2 / CINT7 (after PhysSel); n tracklets; eff.");
+  Int_t iThrs90 = hEffPhysSel->FindFirstBinAbove(0.9,1) - 1;
+  Int_t iThrs95 = hEffPhysSel->FindFirstBinAbove(0.95,1) - 1;
+  printf("Eff. threshold multiplicity: %d tracklets (90%%) | %d tracklets (95%%)\n",iThrs90,iThrs95);
+  Double_t dTurnOn90 = GetTurnOn(hEventMultCVHMSH2PhysSel,iThrs90);
+  Double_t dTurnOn95 = GetTurnOn(hEventMultCVHMSH2PhysSel,iThrs95);
+  printf("Turn-on: %g (90%%) | %g (95%%)\n",dTurnOn90,dTurnOn95);
+
+  // loop over events again for pt dist
+  if(iThrs90 != -1 && iThrs95 != -1)
+  {
+    printf("Obtaining pt distributions\n");
+    for (Int_t i(0); i < numEvents; i++)
+    {
+      if( iNumEventsToProcess >= 0 && i > iNumEventsToProcess) break;
+      if( (i % 10000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
+      eventTree->GetEvent(i);
+
+      bIsCINT7 = fClassesFired->String().Contains("CINT7");
+      bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
+
+      if(bIsCINT7)
+      {
+        AddArrToHist(fTracksPt,hPtCINT7All);
+
+        if(fPhysSelPassed)
+        {
+          AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
+
+          if(fEventCutsPassed)
+          {
+            AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
+          }
+        }
+      } // end of CINT7 cond
+
+
+      if(bIsCVHMSH2)
+      {
+        AddArrToHist(fTracksPt,hPtCVHMSH2All);
+        if(fPhysSelPassed)
+        {
+          AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
+          if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSel);
+          if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSel);
+
+          if(fEventCutsPassed)
+          {
+            AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
+            if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSelEventCuts);
+            if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSelEventCuts);
+          }
+        }
+      } // end of CHVMSH2 cond
+    } // end loop over events
+  } // end of threshold cond
+
 
   // Writing to output file
   TFile* fOutputFile = new TFile(sOutputPath.Append("Processed.root").Data(),"RECREATE");
@@ -245,6 +315,14 @@ void ProcessTrigger()
     hPtCVHMSH2All->Write();
     hPtCVHMSH2AllPhysSel->Write();
     hPtCVHMSH2AllPhysSelEventCuts->Write();
+    hPtCVHMSH2Thrs90->Write();
+    hPtCVHMSH2Thrs90PhysSel->Write();
+    hPtCVHMSH2Thrs90PhysSelEventCuts->Write();
+    hPtCVHMSH2Thrs95->Write();
+    hPtCVHMSH2Thrs95PhysSel->Write();
+    hPtCVHMSH2Thrs95PhysSelEventCuts->Write();
+
+    hEffPhysSel->Write();
   }
 
   // Drawing stuff
@@ -277,6 +355,16 @@ void ProcessTrigger()
   // hEventMultCVHMSH2PhysSel->Draw();
   // hEventMultCVHMSH2PhysSelEventCuts->Draw("same");
 
+  // efficiency
+  TCanvas* canEff = new TCanvas("canEff","canEff");
+  canEff->Divide(2,1);
+  canEff->cd(1);
+  gPad->SetLogy();
+  hEventMultINT7PhysSel->Draw();
+  hEventMultCVHMSH2PhysSel->Draw("same");
+  canEff->cd(2);
+  hEffPhysSel->Draw();
+
   return;
 }
 
@@ -289,7 +377,7 @@ TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
   // }
 
   // printf("AddArrToHist\n");
-  if(!arr || !hist) return;
+  if(!arr || !hist) { printf("ERROR: array or histo does not exists!\n"); return; }
 
   // printf("Name: %s Sum: %g\n",hist->GetName(), arr->GetSum());
 
@@ -308,4 +396,25 @@ TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
 
   // printf("seems fine\n");
   return;
+}
+
+TH1D* GetEfficiency(TH1D* trigger, TH1D* mb)
+{
+  if(!trigger || !mb) { printf("ERROR: histos does not exists!\n"); return 0x0; }
+
+  TH1D* hEfficiency = (TH1D*) trigger->Clone("hEfficiency");
+  hEfficiency->Divide(trigger,mb,1.,1.);
+
+  return hEfficiency;
+}
+
+Double_t GetTurnOn(TH1D* mult, Int_t threshold)
+{
+  if(!mult) { printf("ERROR: Multiplicity histo does not exists!\n"); return -1.; }
+  threshold++; // histo bin number offset : starting with 1 instead of 0
+
+  Double_t dEntries = mult->GetEntries();
+  Double_t dInt = mult->Integral(threshold,mult->GetNbinsX()+1);
+  // printf("Histo: Entries %g | ntegral %g | single bin (thrs) %g \n",mult->GetEntries(), mult->Integral(threshold,mult->GetNbinsX()+1), mult->Integral(threshold,threshold));
+  return dInt / dEntries;
 }
