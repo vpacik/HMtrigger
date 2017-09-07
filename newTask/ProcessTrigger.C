@@ -1,3 +1,6 @@
+
+void AddArrToHist(TArrayD* arr, TH1D* hist);
+
 void ProcessTrigger()
 {
   // parameters
@@ -115,8 +118,9 @@ void ProcessTrigger()
 
   // tree ready
 
-  // Histograms
+  // ### Histograms ###
   TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",1,0,1);
+  // multiplicity dist
   TH1D* hEventMultAll = new TH1D("hEventMultAll","Event multiplicity (all events)",100,0,10000);
   TH1D* hEventMultAllPhysSel = new TH1D("hEventMultAllPhysSel","Event multiplicity (all events passing Phys. Selection)",200,0,200);
   TH1D* hEventMultAllPhysSelEventCuts = new TH1D("hEventMultAllPhysSelEventCuts","Event multiplicity (all events passing Phys. Selection & EventCuts)",200,0,200);
@@ -126,6 +130,15 @@ void ProcessTrigger()
   TH1D* hEventMultCVHMSH2 = new TH1D("hEventMultCVHMSH2","Event multiplicity (CVHMSH2 events)",100,0,10000);
   TH1D* hEventMultCVHMSH2PhysSel = new TH1D("hEventMultCVHMSH2PhysSel","Event multiplicity (CVHMSH2 events passing Phys. Selection)",200,0,200);
   TH1D* hEventMultCVHMSH2PhysSelEventCuts = new TH1D("hEventMultCVHMSH2PhysSelEventCuts","Event multiplicity (CVHMSH2 events passing Phys. Selection & EventCuts)",200,0,200);
+  // pt dist
+  TH1D* hPtCINT7All = new TH1D("hPtCINT7All","Pt dist (CINT7)",100,0,100);
+  TH1D* hPtCINT7AllPhysSel = new TH1D("hPtCINT7AllPhysSel","Pt dist (CINT7)",100,0,100);
+  TH1D* hPtCINT7AllPhysSelEventCuts = new TH1D("hPtCINT7AllPhysSelEventCuts","Pt dist (CINT7)",100,0,100);
+  TH1D* hPtCVHMSH2All = new TH1D("hPtCVHMSH2All","Pt dist (CVHMSH2)",100,0,100);
+  TH1D* hPtCVHMSH2AllPhysSel = new TH1D("hPtCVHMSH2AllPhysSel","Pt dist (CVHMSH2)",100,0,100);
+  TH1D* hPtCVHMSH2AllPhysSelEventCuts = new TH1D("hPtCVHMSH2AllPhysSelEventCuts","Pt dist (CVHMSH2)",100,0,100);
+
+
 
   // variables inside loop
 
@@ -142,6 +155,7 @@ void ProcessTrigger()
   printf("Found %d events\n",numEvents);
   for (Int_t i(0); i < numEvents; i++)
   {
+    // if(i > 5) break;
     if(i > 50000) break;
     if( (i % 5000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
@@ -175,24 +189,39 @@ void ProcessTrigger()
     if(bIsCINT7)
     {
       hEventMultINT7->Fill(fNumTracks);
-      if(fPhysSelPassed) hEventMultINT7PhysSel->Fill(fNumTracklets);
-      if(fPhysSelPassed && fEventCutsPassed) hEventMultINT7PhysSelEventCuts->Fill(fNumTracklets);
+      AddArrToHist(fTracksPt,hPtCINT7All);
+
+      if(fPhysSelPassed)
+      {
+        hEventMultINT7PhysSel->Fill(fNumTracklets);
+        AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
+      }
+
+      if(fPhysSelPassed && fEventCutsPassed)
+      {
+        hEventMultINT7PhysSelEventCuts->Fill(fNumTracklets);
+        AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
+      }
     }
 
     if(bIsCVHMSH2)
     {
       hEventMultCVHMSH2->Fill(fNumTracks);
-      if(fPhysSelPassed) hEventMultCVHMSH2PhysSel->Fill(fNumTracklets);
-      if(fPhysSelPassed && fEventCutsPassed) hEventMultCVHMSH2PhysSelEventCuts->Fill(fNumTracklets);
+      AddArrToHist(fTracksPt,hPtCVHMSH2All);
+
+      if(fPhysSelPassed)
+      {
+        hEventMultCVHMSH2PhysSel->Fill(fNumTracklets);
+        AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
+      }
+
+      if(fPhysSelPassed && fEventCutsPassed)
+      {
+        hEventMultCVHMSH2PhysSelEventCuts->Fill(fNumTracklets);
+        AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
+      }
     }
 
-
-
-    // Example of making histo out of TArray
-    // for(Short_t j(0); j < 100; j++)
-    // {
-    //   hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
-    // }
   }
 
   // Writing to output file
@@ -209,6 +238,13 @@ void ProcessTrigger()
     hEventMultCVHMSH2->Write();
     hEventMultCVHMSH2PhysSel->Write();
     hEventMultCVHMSH2PhysSelEventCuts->Write();
+
+    hPtCINT7All->Write();
+    hPtCINT7AllPhysSel->Write();
+    hPtCINT7AllPhysSelEventCuts->Write();
+    hPtCVHMSH2All->Write();
+    hPtCVHMSH2AllPhysSel->Write();
+    hPtCVHMSH2AllPhysSelEventCuts->Write();
   }
 
   // Drawing stuff
@@ -241,5 +277,35 @@ void ProcessTrigger()
   // hEventMultCVHMSH2PhysSel->Draw();
   // hEventMultCVHMSH2PhysSelEventCuts->Draw("same");
 
+  return;
+}
+
+TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
+{
+  // Example of making histo out of TArray
+  // for(Short_t j(0); j < 100; j++)
+  // {
+  //   hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
+  // }
+
+  // printf("AddArrToHist\n");
+  if(!arr || !hist) return;
+
+  // printf("Name: %s Sum: %g\n",hist->GetName(), arr->GetSum());
+
+  if(arr->GetSum() == 0) { printf("Nothing to add! Array empty\n"); return; }
+
+  Short_t arrSize = arr->GetSize();
+  Short_t histBins = hist->GetNbinsX();
+
+  if(arrSize != histBins) { printf("ERROR: Array size is different from number of bins!\n"); return; }
+
+  for(Short_t bin = 0; bin < arrSize; bin++)
+  {
+    // printf("bin %d = %g \n", bin, arr->GetAt(bin));
+    hist->SetBinContent(bin+1, hist->GetBinContent(bin+1)+arr->GetAt(bin) );
+  }
+
+  // printf("seems fine\n");
   return;
 }
