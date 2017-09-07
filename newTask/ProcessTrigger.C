@@ -3,6 +3,7 @@ void ProcessTrigger()
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
   const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
+  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -20,7 +21,7 @@ void ProcessTrigger()
   if (!eventTree) { printf(" ERROR: Tree is not there! \n"); }
 
   // list of branches in TTree
-  TObjString*          fClassesFired = 0x0; // list of fired trigger classes
+  TObjString*         fClassesFired = 0x0; // list of fired trigger classes
   UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
   Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
   Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
@@ -32,13 +33,13 @@ void ProcessTrigger()
   UShort_t            fBC; // bunch cross (BX) number
   UInt_t              fL0inputs; // L0 trigger inputs
   UInt_t              fL1inputs; // L1 trigger inputs
-  TBits*               fIR1 = 0x0; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
-  TBits*               fIR2 = 0x0; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
+  TBits*              fIR1 = 0x0; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
+  TBits*              fIR2 = 0x0; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
   Int_t               fNumTracklets; // number of tracklets
-  TBits*               fFiredChipMap = 0x0; // map of fired chips (at least one cluster)
-  TBits*               fFiredChipMapFO = 0x0; // map of fired FastOr chips
+  TBits*              fFiredChipMap = 0x0; // map of fired chips (at least one cluster)
+  TBits*              fFiredChipMapFO = 0x0; // map of fired FastOr chips
   Int_t               fNumITSCls[6]; // number of ITS clusters per layer
-  Int_t              fTriggerMaskTOF[72]; // TOF trigger mask array
+  Int_t               fTriggerMaskTOF[72]; // TOF trigger mask array
   Float_t             fV0ATotMult; // total multiplicity in V0A
   Float_t             fV0CTotMult; // total multiplicity in V0C
   Float_t             fV0AMult[32]; // multiplicity in V0A cells
@@ -64,7 +65,7 @@ void ProcessTrigger()
   Double_t            fVtxZ; // primary vertex z-coordinate
   Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
   Int_t               fNumTracks; // number of tracks
-  TArrayD*             fTracksPt = 0x0; // binned tracks pt
+  TArrayD*            fTracksPt = 0x0; // binned tracks pt
 
   eventTree->SetBranchAddress("fClassesFired",&fClassesFired);
   eventTree->SetBranchAddress("fPhysSelDecision",&fPhysSelDecision);
@@ -114,11 +115,27 @@ void ProcessTrigger()
 
   // tree ready
 
+  // Histograms
+  TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",1,0,1);
+  TH1D* hEventMultAll = new TH1D("hEventMultAll","Event multiplicity (all events)",100,0,10000);
+  TH1D* hEventMultAllPhysSel = new TH1D("hEventMultAllPhysSel","Event multiplicity (all events passing Phys. Selection)",200,0,200);
+  TH1D* hEventMultAllPhysSelEventCuts = new TH1D("hEventMultAllPhysSelEventCuts","Event multiplicity (all events passing Phys. Selection & EventCuts)",200,0,200);
+  TH1D* hEventMultINT7 = new TH1D("hEventMultINT7","Event multiplicity (INT7 events)",100,0,10000);
+  TH1D* hEventMultINT7PhysSel = new TH1D("hEventMultINT7PhysSel","Event multiplicity (INT7 events passing Phys. Selection)",200,0,200);
+  TH1D* hEventMultINT7PhysSelEventCuts = new TH1D("hEventMultINT7PhysSelEventCuts","Event multiplicity (INT7 events passing Phys. Selection & EventCuts)",200,0,200);
+  TH1D* hEventMultCVHMSH2 = new TH1D("hEventMultCVHMSH2","Event multiplicity (CVHMSH2 events)",100,0,10000);
+  TH1D* hEventMultCVHMSH2PhysSel = new TH1D("hEventMultCVHMSH2PhysSel","Event multiplicity (CVHMSH2 events passing Phys. Selection)",200,0,200);
+  TH1D* hEventMultCVHMSH2PhysSelEventCuts = new TH1D("hEventMultCVHMSH2PhysSelEventCuts","Event multiplicity (CVHMSH2 events passing Phys. Selection & EventCuts)",200,0,200);
 
-  TH1D* hTrackPt2 = new TH1D("hTrackPt2","hTrackPt2",100,0,100);
+  // variables inside loop
 
+  Double_t dNumFORon = -1.;
+  Double_t dNumFORof = -1.;
 
-
+  Bool_t bIsCINT7 = kFALSE;
+  Bool_t bIs0VHM = kFALSE;
+  Bool_t bIs0SH2 = kFALSE;
+  Bool_t bIsCVHMSH2 = kFALSE;
 
   // looping over entries
   Int_t numEvents = eventTree->GetEntriesFast();
@@ -128,17 +145,101 @@ void ProcessTrigger()
     if(i > 50000) break;
     if( (i % 5000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
+    hEventCounter->Fill("Input",1);
 
-    // printf("RunNumber: %d\n",fRunNumber);
+    dNumFORon = fFiredChipMapFO->CountBits(400);
+    dNumFORof = fFiredChipMap->CountBits(400);
 
+    // trigger classes check
+    bIsCINT7 = fClassesFired->String().Contains("CINT7");
+    bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
+    bIs0VHM = (fV0AFlagsBB >=1 && fV0CFlagsBB >=1 && fV0AFlagsBG <=15 && fV0CFlagsBG <=3);
+    bIs0SH2 = (dNumFORon >= 70);
 
-    for(Short_t j(0); j < 100; j++)
+    if(bIsCINT7) { hEventCounter->Fill("CINT7",1); }
+    if(bIs0SH2) { hEventCounter->Fill("0SH2",1); }
+    if(bIs0VHM) { hEventCounter->Fill("0VHM",1); }
+    if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("CINT7 & 0SH2 & 0VHM",1); }
+    if(bIsCVHMSH2) { hEventCounter->Fill("CVHMSH2",1);  }
+    if(bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
     {
-      hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
+      hEventCounter->Fill("CINT7 & 0SH2 & 0VHM & !CVHMSH2",1);
+      printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
     }
+
+    // Purity(multiplicity) = #Events after Phys.Selection / #Events
+    hEventMultAll->Fill(fNumTracks);
+    if(fPhysSelPassed) hEventMultAllPhysSel->Fill(fNumTracklets);
+    if(fPhysSelPassed && fEventCutsPassed) hEventMultAllPhysSelEventCuts->Fill(fNumTracklets);
+
+    if(bIsCINT7)
+    {
+      hEventMultINT7->Fill(fNumTracks);
+      if(fPhysSelPassed) hEventMultINT7PhysSel->Fill(fNumTracklets);
+      if(fPhysSelPassed && fEventCutsPassed) hEventMultINT7PhysSelEventCuts->Fill(fNumTracklets);
+    }
+
+    if(bIsCVHMSH2)
+    {
+      hEventMultCVHMSH2->Fill(fNumTracks);
+      if(fPhysSelPassed) hEventMultCVHMSH2PhysSel->Fill(fNumTracklets);
+      if(fPhysSelPassed && fEventCutsPassed) hEventMultCVHMSH2PhysSelEventCuts->Fill(fNumTracklets);
+    }
+
+
+
+    // Example of making histo out of TArray
+    // for(Short_t j(0); j < 100; j++)
+    // {
+    //   hTrackPt2->SetBinContent(j+1,hTrackPt2->GetBinContent(j+1)+fTracksPt->GetAt(j) );
+    // }
   }
 
-  hTrackPt2->Draw("e");
+  // Writing to output file
+  TFile* fOutputFile = new TFile(sOutputPath.Append("Processed.root").Data(),"RECREATE");
+  if(fOutputFile->IsOpen())
+  {
+    hEventCounter->Write();
+    hEventMultAll->Write();
+    hEventMultAllPhysSel->Write();
+    hEventMultAllPhysSelEventCuts->Write();
+    hEventMultINT7->Write();
+    hEventMultINT7PhysSel->Write();
+    hEventMultINT7PhysSelEventCuts->Write();
+    hEventMultCVHMSH2->Write();
+    hEventMultCVHMSH2PhysSel->Write();
+    hEventMultCVHMSH2PhysSelEventCuts->Write();
+  }
+
+  // Drawing stuff
+
+  // hEventMultAllPhysSelEventCuts->SetLineColor(kRed);
+  // hEventMultINT7PhysSelEventCuts->SetLineColor(kRed);
+  // hEventMultCVHMSH2PhysSelEventCuts->SetLineColor(kRed);
+
+
+  // TCanvas* canPurity = new TCanvas("canPurity","canPurity");
+  // canPurity->Divide(3,2);
+  // canPurity->cd(1);
+  // hEventMultAll->Draw();
+  //
+  // canPurity->cd(2);
+  // hEventMultINT7->Draw();
+  //
+  // canPurity->cd(3);
+  // hEventMultCVHMSH2->Draw();
+  //
+  // canPurity->cd(4);
+  // hEventMultAllPhysSel->Draw();
+  // hEventMultAllPhysSelEventCuts->Draw("same");
+  //
+  // canPurity->cd(5);
+  // hEventMultINT7PhysSel->Draw();
+  // hEventMultINT7PhysSelEventCuts->Draw("same");
+  //
+  // canPurity->cd(6);
+  // hEventMultCVHMSH2PhysSel->Draw();
+  // hEventMultCVHMSH2PhysSelEventCuts->Draw("same");
 
   return;
 }
