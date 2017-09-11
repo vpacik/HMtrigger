@@ -34,5 +34,8 @@
 *.gif
 
 ### Directories ###
-results/*
-hepData/*
+/etc/*
+/original_bk/*
+/TriggerStudies/*
+/upcTree/*
+./newTask/running/*
