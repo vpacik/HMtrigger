@@ -10,7 +10,9 @@ void ProcessTrigger()
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
   // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
+  Int_t iNumEventsToProcess = 200000; // number of events to be processed; if -1 all are processed
+  Bool_t bProcessPtTurnOn = kFALSE; // flag for processing pt-dependent turn on (need to run over event twice)
+
   Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
 
   // loading input (filtered) TTree & list with histos
@@ -212,13 +214,13 @@ void ProcessTrigger()
 
     // Purity(multiplicity) = #Events after Phys.Selection / #Events
 
-    hEventMultAll->Fill(fNumTracks);
+    hEventMultAll->Fill(fNumTracklets);
     if(fPhysSelPassed) hEventMultAllPhysSel->Fill(fNumTracklets);
     if(fPhysSelPassed && fEventCutsPassed) hEventMultAllPhysSelEventCuts->Fill(fNumTracklets);
 
     if(bIsCINT7)
     {
-      hEventMultINT7->Fill(fNumTracks);
+      hEventMultINT7->Fill(fNumTracklets);
       // AddArrToHist(fTracksPt,hPtCINT7All);
 
       if(fPhysSelPassed)
@@ -236,7 +238,7 @@ void ProcessTrigger()
 
     if(bIsCVHMSH2)
     {
-      hEventMultCVHMSH2->Fill(fNumTracks);
+      hEventMultCVHMSH2->Fill(fNumTracklets);
       // AddArrToHist(fTracksPt,hPtCVHMSH2All);
 
       if(fPhysSelPassed)
@@ -277,54 +279,59 @@ void ProcessTrigger()
   Double_t dTurnOn95 = GetTurnOn(hEventMultCVHMSH2PhysSel,iThrs95);
   printf("Turn-on: %g (90%%) | %g (95%%)\n",dTurnOn90,dTurnOn95);
 
-  // loop over events again for pt dist
-  if(iThrs90 != -1 && iThrs95 != -1)
+  if(bProcessPtTurnOn)
   {
-    printf("Obtaining pt distributions\n");
-    for (Int_t i(0); i < numEvents; i++)
+    // loop over events again for pt dist
+    if(iThrs90 != -1 && iThrs95 != -1)
     {
-      if( iNumEventsToProcess >= 0 && i > iNumEventsToProcess) break;
-      if( (i % 10000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
-      eventTree->GetEvent(i);
-
-      bIsCINT7 = fClassesFired->String().Contains("CINT7");
-      bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
-
-      if(bIsCINT7)
+      printf("Obtaining pt distributions\n");
+      for (Int_t i(0); i < numEvents; i++)
       {
-        AddArrToHist(fTracksPt,hPtCINT7All);
+        if( iNumEventsToProcess >= 0 && i > iNumEventsToProcess) break;
+        if( (i % 10000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
+        eventTree->GetEvent(i);
 
-        if(fPhysSelPassed)
+        bIsCINT7 = fClassesFired->String().Contains("CINT7");
+        bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
+
+        if(bIsCINT7)
         {
-          AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
+          AddArrToHist(fTracksPt,hPtCINT7All);
 
-          if(fEventCutsPassed)
+          if(fPhysSelPassed)
           {
-            AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
+            AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
+
+            if(fEventCutsPassed)
+            {
+              AddArrToHist(fTracksPt,hPtCINT7AllPhysSelEventCuts);
+            }
           }
-        }
-      } // end of CINT7 cond
+        } // end of CINT7 cond
 
 
-      if(bIsCVHMSH2)
-      {
-        AddArrToHist(fTracksPt,hPtCVHMSH2All);
-        if(fPhysSelPassed)
+        if(bIsCVHMSH2)
         {
-          AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
-          if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSel);
-          if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSel);
-
-          if(fEventCutsPassed)
+          AddArrToHist(fTracksPt,hPtCVHMSH2All);
+          if(fPhysSelPassed)
           {
-            AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
-            if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSelEventCuts);
-            if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSelEventCuts);
+            AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
+            if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSel);
+            if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSel);
+
+            if(fEventCutsPassed)
+            {
+              AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSelEventCuts);
+              if(fNumTracklets >= iThrs90) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs90PhysSelEventCuts);
+              if(fNumTracklets >= iThrs95) AddArrToHist(fTracksPt,hPtCVHMSH2Thrs95PhysSelEventCuts);
+            }
           }
-        }
-      } // end of CHVMSH2 cond
-    } // end loop over events
-  } // end of threshold cond
+        } // end of CHVMSH2 cond
+      } // end loop over events
+    } // end of threshold cond
+
+  }
+
 
   // obtaining pt dep. turn-on
   TH1D* hPtTurnOnAll = (TH1D*) hPtCVHMSH2AllPhysSel->Clone("hPtTurnOnAll");
