@@ -6,11 +6,11 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 void ProcessTrigger()
 {
   // parameters
-  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults_BK.root";
+  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
-  Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  // Int_t iNumEventsToProcess = 30000; // number of events to be processed; if -1 all are processed
+  // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
+  Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
 
 
   // loading input (filtered) TTree & list with histos
@@ -41,6 +41,7 @@ void ProcessTrigger()
   UShort_t            fBC; // bunch cross (BX) number
   UInt_t              fL0inputs; // L0 trigger inputs
   UInt_t              fL1inputs; // L1 trigger inputs
+  TObjString*         fFiredTriggerInputs; // list of fired trigger inputs
   TBits*              fIR1 = 0x0; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
   TBits*              fIR2 = 0x0; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
   Int_t               fNumTracklets; // number of tracklets
@@ -87,6 +88,7 @@ void ProcessTrigger()
   eventTree->SetBranchAddress("fBC",&fBC);
   eventTree->SetBranchAddress("fL0inputs",&fL0inputs);
   eventTree->SetBranchAddress("fL1inputs",&fL1inputs);
+  eventTree->SetBranchAddress("fFiredTriggerInputs",&fFiredTriggerInputs);
   eventTree->SetBranchAddress("fIR1",&fIR1);
   eventTree->SetBranchAddress("fIR2",&fIR2);
   eventTree->SetBranchAddress("fNumTracklets",&fNumTracklets);
@@ -163,7 +165,8 @@ void ProcessTrigger()
 
   // looping over entries
   Int_t numEvents = eventTree->GetEntriesFast();
-  printf("Found %d events\n",numEvents);
+  printf("Found %d events\nTo be processed: %d\n",numEvents,iNumEventsToProcess);
+
   for (Int_t i(0); i < numEvents; i++)
   {
     // if(i > 5) break;
@@ -178,18 +181,27 @@ void ProcessTrigger()
     // trigger classes check
     bIsCINT7 = fClassesFired->String().Contains("CINT7");
     bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
-    bIs0VHM = (fV0AFlagsBB >=1 && fV0CFlagsBB >=1 && fV0AFlagsBG <=15 && fV0CFlagsBG <=3);
-    bIs0SH2 = (dNumFORon >= 70);
+    bIs0SH2 = fFiredTriggerInputs->String().Contains("0SH2");
+    bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
 
-    if(bIsCINT7) { hEventCounter->Fill("CINT7",1); }
-    if(bIs0SH2) { hEventCounter->Fill("0SH2",1); }
-    if(bIs0VHM) { hEventCounter->Fill("0VHM",1); }
-    if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("CINT7 & 0SH2 & 0VHM",1); }
-    if(bIsCVHMSH2) { hEventCounter->Fill("CVHMSH2",1);  }
+    // From Michele analysis.C macro : apparently definition changed from 15l -> 16k (not working)
+    // bIs0VHM = fL0inputs & 1<<10;
+    // bIs0SH2 = fL0inputs & 1<<13;
+
+    // by hand implementation (true? apparently SH2 requires at least 1 BG flag)
+    // bIs0VHM = (fV0AFlagsBB >=1 && fV0CFlagsBB >=1 && fV0AFlagsBG <=15 && fV0CFlagsBG <=3);
+    // bIs0SH2 = (dNumFORon >= 70);
+
+    if(bIsCINT7) { hEventCounter->Fill("INT7",1); }
+    if(bIs0SH2) { hEventCounter->Fill("SH2",1); }
+    if(bIs0VHM) { hEventCounter->Fill("VHM",1); }
+    if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("INT7 & SH2 & VHM",1); }
+    if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); }
     if(bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
     {
-      hEventCounter->Fill("CINT7 & 0SH2 & 0VHM & !CVHMSH2",1);
+      hEventCounter->Fill("INT7 && SH2 & VHM & !VHMSH2",1);
       printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
+      printf(" L0 inputs: %d | SH2 %d | VHM %d | VHMSH2 %d | INT7 %d\n", fL0inputs, bIs0SH2, bIs0VHM, bIsCVHMSH2, bIsCINT7);
     }
 
     // Purity(multiplicity) = #Events after Phys.Selection / #Events

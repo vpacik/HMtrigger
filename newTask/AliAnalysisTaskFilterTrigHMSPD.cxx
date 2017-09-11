@@ -40,6 +40,7 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fBC(0),
   fL0inputs(0),
   fL1inputs(0),
+  fFiredTriggerInputs(new TObjString()),
   fIR1(),
   fIR2(),
   fNumTracklets(0),
@@ -107,6 +108,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fBC",&fBC);
   fTree->Branch("fL0inputs",&fL0inputs);
   fTree->Branch("fL1inputs",&fL1inputs);
+  fTree->Branch("fFiredTriggerInputs",&fFiredTriggerInputs);
   fTree->Branch("fIR1",&fIR1);
   fTree->Branch("fIR2",&fIR2);
   fTree->Branch("fFiredChipMap",&fFiredChipMap);
@@ -187,6 +189,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fL1inputs = fInputEvent->GetHeader()->GetL1TriggerInputs();
   fIR1 = fInputEvent->GetHeader()->GetIRInt1InteractionMap();
   fIR2 = fInputEvent->GetHeader()->GetIRInt2InteractionMap();
+  fFiredTriggerInputs->SetString( ( (AliESDHeader*)fInputEvent->GetHeader() )->GetFiredTriggerInputs() );
 
   // === do not know what exactly happens here ====
   // fIRproblem = 0;
