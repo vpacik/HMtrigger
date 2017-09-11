@@ -9,7 +9,8 @@ void ProcessTrigger()
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/merge/AnalysisResults.root";
   const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults_BK.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
-  Int_t iNumEventsToProcess = 30000; // number of events to be processed; if -1 all are processed
+  Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
+  // Int_t iNumEventsToProcess = 30000; // number of events to be processed; if -1 all are processed
 
 
   // loading input (filtered) TTree & list with histos
@@ -125,28 +126,28 @@ void ProcessTrigger()
   // ### Histograms ###
   TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",1,0,1);
   // multiplicity dist
-  TH1D* hEventMultAll = new TH1D("hEventMultAll","Event multiplicity (all events)",100,0,10000);
-  TH1D* hEventMultAllPhysSel = new TH1D("hEventMultAllPhysSel","Event multiplicity (all events passing Phys. Selection)",200,0,200);
-  TH1D* hEventMultAllPhysSelEventCuts = new TH1D("hEventMultAllPhysSelEventCuts","Event multiplicity (all events passing Phys. Selection & EventCuts)",200,0,200);
-  TH1D* hEventMultINT7 = new TH1D("hEventMultINT7","Event multiplicity (INT7 events)",100,0,10000);
-  TH1D* hEventMultINT7PhysSel = new TH1D("hEventMultINT7PhysSel","Event multiplicity (INT7 events passing Phys. Selection)",200,0,200);
-  TH1D* hEventMultINT7PhysSelEventCuts = new TH1D("hEventMultINT7PhysSelEventCuts","Event multiplicity (INT7 events passing Phys. Selection & EventCuts)",200,0,200);
-  TH1D* hEventMultCVHMSH2 = new TH1D("hEventMultCVHMSH2","Event multiplicity (CVHMSH2 events)",100,0,10000);
-  TH1D* hEventMultCVHMSH2PhysSel = new TH1D("hEventMultCVHMSH2PhysSel","Event multiplicity (CVHMSH2 events passing Phys. Selection)",200,0,200);
-  TH1D* hEventMultCVHMSH2PhysSelEventCuts = new TH1D("hEventMultCVHMSH2PhysSelEventCuts","Event multiplicity (CVHMSH2 events passing Phys. Selection & EventCuts)",200,0,200);
+  TH1D* hEventMultAll = new TH1D("hEventMultAll","Event multiplicity (all events); n tracklets",200,0,200);
+  TH1D* hEventMultAllPhysSel = new TH1D("hEventMultAllPhysSel","Event multiplicity (all events passing Phys. Selection); n tracklets",200,0,200);
+  TH1D* hEventMultAllPhysSelEventCuts = new TH1D("hEventMultAllPhysSelEventCuts","Event multiplicity (all events passing Phys. Selection & EventCuts); n tracklets",200,0,200);
+  TH1D* hEventMultINT7 = new TH1D("hEventMultINT7","Event multiplicity (INT7 events); n tracklets",200,0,200);
+  TH1D* hEventMultINT7PhysSel = new TH1D("hEventMultINT7PhysSel","Event multiplicity (INT7 events passing Phys. Selection); n tracklets",200,0,200);
+  TH1D* hEventMultINT7PhysSelEventCuts = new TH1D("hEventMultINT7PhysSelEventCuts","Event multiplicity (INT7 events passing Phys. Selection & EventCuts); n tracklets",200,0,200);
+  TH1D* hEventMultCVHMSH2 = new TH1D("hEventMultCVHMSH2","Event multiplicity (CVHMSH2 events); n tracklets",200,0,200);
+  TH1D* hEventMultCVHMSH2PhysSel = new TH1D("hEventMultCVHMSH2PhysSel","Event multiplicity (CVHMSH2 events passing Phys. Selection); n tracklets",200,0,200);
+  TH1D* hEventMultCVHMSH2PhysSelEventCuts = new TH1D("hEventMultCVHMSH2PhysSelEventCuts","Event multiplicity (CVHMSH2 events passing Phys. Selection & EventCuts); n tracklets",200,0,200);
   // pt dist
-  TH1D* hPtCINT7All = new TH1D("hPtCINT7All","Pt dist (CINT7)",100,0,100);
-  TH1D* hPtCINT7AllPhysSel = new TH1D("hPtCINT7AllPhysSel","Pt dist (CINT7)",100,0,100);
-  TH1D* hPtCINT7AllPhysSelEventCuts = new TH1D("hPtCINT7AllPhysSelEventCuts","Pt dist (CINT7)",100,0,100);
-  TH1D* hPtCVHMSH2All = new TH1D("hPtCVHMSH2All","Pt dist (CVHMSH2)",100,0,100);
-  TH1D* hPtCVHMSH2AllPhysSel = new TH1D("hPtCVHMSH2AllPhysSel","Pt dist (CVHMSH2)",100,0,100);
-  TH1D* hPtCVHMSH2AllPhysSelEventCuts = new TH1D("hPtCVHMSH2AllPhysSelEventCuts","Pt dist (CVHMSH2)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs90 = new TH1D("hPtCVHMSH2Thrs90","Pt dist (CVHMSH2|above 90%)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs90PhysSel = new TH1D("hPtCVHMSH2Thrs90PhysSel","Pt dist (CVHMSH2|above 90%)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs90PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs90PhysSelEventCuts","Pt dist (CVHMSH2|above 90%)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs95 = new TH1D("hPtCVHMSH2Thrs95","Pt dist (CVHMSH2|above 95%)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs95PhysSel = new TH1D("hPtCVHMSH2Thrs95PhysSel","Pt dist (CVHMSH2|above 95%)",100,0,100);
-  TH1D* hPtCVHMSH2Thrs95PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs95PhysSelEventCuts","Pt dist (CVHMSH2|above 95%)",100,0,100);
+  TH1D* hPtCINT7All = new TH1D("hPtCINT7All","Pt dist (CINT7); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCINT7AllPhysSel = new TH1D("hPtCINT7AllPhysSel","Pt dist (CINT7); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCINT7AllPhysSelEventCuts = new TH1D("hPtCINT7AllPhysSelEventCuts","Pt dist (CINT7); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2All = new TH1D("hPtCVHMSH2All","Pt dist (CVHMSH2); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2AllPhysSel = new TH1D("hPtCVHMSH2AllPhysSel","Pt dist (CVHMSH2); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2AllPhysSelEventCuts = new TH1D("hPtCVHMSH2AllPhysSelEventCuts","Pt dist (CVHMSH2); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90 = new TH1D("hPtCVHMSH2Thrs90","Pt dist (CVHMSH2|above 90%); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90PhysSel = new TH1D("hPtCVHMSH2Thrs90PhysSel","Pt dist (CVHMSH2|above 90%); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs90PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs90PhysSelEventCuts","Pt dist (CVHMSH2|above 90%); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95 = new TH1D("hPtCVHMSH2Thrs95","Pt dist (CVHMSH2|above 95%); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95PhysSel = new TH1D("hPtCVHMSH2Thrs95PhysSel","Pt dist (CVHMSH2|above 95%); track pt (GeV/c)",100,0,100);
+  TH1D* hPtCVHMSH2Thrs95PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs95PhysSelEventCuts","Pt dist (CVHMSH2|above 95%); track pt (GeV/c)",100,0,100);
 
 
 
@@ -234,6 +235,19 @@ void ProcessTrigger()
 
   }
 
+  // obtaining Purity
+  TH1D* hPurityAll = (TH1D*) hEventMultAll->Clone("hPurityAll");
+  hPurityAll->Divide(hEventMultAllPhysSel,hEventMultAll,1.,1.);
+  hPurityAll->SetTitle("Purity (all events); n tracklets; PhysSel / all");
+
+  TH1D* hPurityINT7 = (TH1D*) hEventMultINT7->Clone("hPurityINT7");
+  hPurityINT7->Divide(hEventMultINT7PhysSel,hEventMultINT7,1.,1.);
+  hPurityINT7->SetTitle("Purity (INT7 events); n tracklets; PhysSel / INT7");
+
+  TH1D* hPurityCVHMSH2 = (TH1D*) hEventMultCVHMSH2->Clone("hPurityCVHMSH2");
+  hPurityCVHMSH2->Divide(hEventMultCVHMSH2PhysSel,hEventMultCVHMSH2,1.,1.);
+  hPurityCVHMSH2->SetTitle("Purity (CVHMSH2 events); n tracklets; PhysSel / CVHMSH2");
+
   // obtaining efficiency, threshold, turn-on
   TH1D* hEffPhysSel = GetEfficiency(hEventMultCVHMSH2PhysSel,hEventMultINT7PhysSel);
   hEffPhysSel->SetNameTitle("hEffCVHMSH2CINT7PhysSel","Efficiency CVHMSH2 / CINT7 (after PhysSel); n tracklets; eff.");
@@ -293,6 +307,18 @@ void ProcessTrigger()
     } // end loop over events
   } // end of threshold cond
 
+  // obtaining pt dep. turn-on
+  TH1D* hPtTurnOnAll = (TH1D*) hPtCVHMSH2AllPhysSel->Clone("hPtTurnOnAll");
+  hPtTurnOnAll->Divide(hPtCVHMSH2AllPhysSel,hPtCINT7AllPhysSel,1.,1.);
+  hPtTurnOnAll->SetTitle("Pt turn-on (all); track pt (GeV/c); trigger/MB");
+
+  TH1D* hPtTurnOnThrs90 = (TH1D*) hPtCVHMSH2Thrs90PhysSel->Clone("hPtTurnOnAll");
+  hPtTurnOnThrs90->Divide(hPtCVHMSH2Thrs90PhysSel,hPtCINT7AllPhysSel,1.,1.);
+  hPtTurnOnThrs90->SetTitle("Pt turn-on (90%); track pt (GeV/c); trigger/MB");
+
+  TH1D* hPtTurnOnThrs95 = (TH1D*) hPtCVHMSH2Thrs95PhysSel->Clone("hPtTurnOnAll");
+  hPtTurnOnThrs95->Divide(hPtCVHMSH2Thrs95PhysSel,hPtCINT7AllPhysSel,1.,1.);
+  hPtTurnOnThrs95->SetTitle("Pt turn-on (95%); track pt (GeV/c); trigger/MB");
 
   // Writing to output file
   TFile* fOutputFile = new TFile(sOutputPath.Append("Processed.root").Data(),"RECREATE");
@@ -322,48 +348,89 @@ void ProcessTrigger()
     hPtCVHMSH2Thrs95PhysSel->Write();
     hPtCVHMSH2Thrs95PhysSelEventCuts->Write();
 
+    hPurityAll->Write();
+    hPurityINT7->Write();
+    hPurityCVHMSH2->Write();
+
     hEffPhysSel->Write();
+
+    hPtTurnOnAll->Write();
+    hPtTurnOnThrs90->Write();
+    hPtTurnOnThrs95->Write();
   }
 
   // Drawing stuff
 
-  // hEventMultAllPhysSelEventCuts->SetLineColor(kRed);
-  // hEventMultINT7PhysSelEventCuts->SetLineColor(kRed);
-  // hEventMultCVHMSH2PhysSelEventCuts->SetLineColor(kRed);
+  hEventMultAllPhysSel->SetLineColor(kRed);
+  hEventMultINT7PhysSel->SetLineColor(kRed);
+  hEventMultCVHMSH2PhysSel->SetLineColor(kRed);
 
+  TCanvas* canPurity = new TCanvas("canPurity","canPurity",1500,1000);
+  canPurity->Divide(3,2);
+  canPurity->cd(1);
+  gPad->SetLogy();
+  hEventMultAllPhysSel->Draw();
+  hEventMultAll->Draw("same");
 
-  // TCanvas* canPurity = new TCanvas("canPurity","canPurity");
-  // canPurity->Divide(3,2);
-  // canPurity->cd(1);
-  // hEventMultAll->Draw();
-  //
-  // canPurity->cd(2);
-  // hEventMultINT7->Draw();
-  //
-  // canPurity->cd(3);
-  // hEventMultCVHMSH2->Draw();
-  //
-  // canPurity->cd(4);
-  // hEventMultAllPhysSel->Draw();
-  // hEventMultAllPhysSelEventCuts->Draw("same");
-  //
-  // canPurity->cd(5);
-  // hEventMultINT7PhysSel->Draw();
-  // hEventMultINT7PhysSelEventCuts->Draw("same");
-  //
-  // canPurity->cd(6);
-  // hEventMultCVHMSH2PhysSel->Draw();
-  // hEventMultCVHMSH2PhysSelEventCuts->Draw("same");
+  canPurity->cd(2);
+  gPad->SetLogy();
+  hEventMultINT7PhysSel->Draw();
+  hEventMultINT7->Draw("same");
+
+  canPurity->cd(3);
+  gPad->SetLogy();
+  hEventMultCVHMSH2PhysSel->Draw();
+  hEventMultCVHMSH2->Draw("same");
+
+  canPurity->cd(4);
+  hPurityAll->Draw();
+
+  canPurity->cd(5);
+  hPurityINT7->Draw();
+
+  canPurity->cd(6);
+  hPurityCVHMSH2->Draw();
 
   // efficiency
+  TLine* lineThrs90 = new TLine();
+  lineThrs90->SetLineColor(kRed);
+  lineThrs90->SetLineWidth(2);
+  TLine* lineThrs95 = new TLine();
+  lineThrs95->SetLineColor(kGreen+2);
+  lineThrs95->SetLineWidth(2);
+  TLatex* latexThrs90 = new TLatex();
+  latexThrs90->SetNDC();
+  latexThrs90->SetTextColor(kRed);
+  TLatex* latexThrs95 = new TLatex();
+  latexThrs95->SetNDC();
+  latexThrs95->SetTextColor(kGreen+2);
+
   TCanvas* canEff = new TCanvas("canEff","canEff");
   canEff->Divide(2,1);
   canEff->cd(1);
   gPad->SetLogy();
   hEventMultINT7PhysSel->Draw();
   hEventMultCVHMSH2PhysSel->Draw("same");
+  lineThrs90->DrawLine(iThrs90,0.,iThrs90,hEventMultINT7PhysSel->GetMaximum());
+  lineThrs95->DrawLine(iThrs95,0.,iThrs95,hEventMultINT7PhysSel->GetMaximum());
+  latexThrs90->DrawLatex(0.5,0.65, TString::Format("90%%: %g %%",dTurnOn90).Data());
+  latexThrs95->DrawLatex(0.5,0.7, TString::Format("95%%: %g %%",dTurnOn95).Data());
   canEff->cd(2);
   hEffPhysSel->Draw();
+  lineThrs90->DrawLine(iThrs90,0.,iThrs90,1.);
+  lineThrs95->DrawLine(iThrs95,0.,iThrs95,1.);
+
+  // pt turn on
+  TCanvas* canPtTurn = new TCanvas("canPtTurn","canPtTurn",1500,500);
+  canPtTurn->Divide(3,1);
+  canPtTurn->cd(1);
+  hPtTurnOnAll->Draw();
+  canPtTurn->cd(2);
+  hPtTurnOnThrs90->Draw();
+  canPtTurn->cd(3);
+  hPtTurnOnThrs95->Draw();
+
+
 
   return;
 }
