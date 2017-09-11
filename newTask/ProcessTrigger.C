@@ -10,7 +10,7 @@ void ProcessTrigger()
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
   // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  Int_t iNumEventsToProcess = 200000; // number of events to be processed; if -1 all are processed
+  Int_t iNumEventsToProcess = 500000; // number of events to be processed; if -1 all are processed
   Bool_t bProcessPtTurnOn = kFALSE; // flag for processing pt-dependent turn on (need to run over event twice)
 
   Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
@@ -128,7 +128,13 @@ void ProcessTrigger()
   // tree ready
 
   // ### Histograms ###
-  TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",1,0,1);
+
+  TString sLabelEventCounter[] = {"Input", "INT7", "SH2", "VHM", "INT7 & SH2 & VHM", "VHMSH2", "INT7 && SH2 & VHM & !VHMSH2"};
+  Int_t iNumBinsEventCounter = sizeof(sLabelEventCounter)/sizeof(sLabelEventCounter[0]);
+
+
+  TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",iNumBinsEventCounter,0,iNumBinsEventCounter);
+  for(Int_t i(0); i < iNumBinsEventCounter; i++) { hEventCounter->GetXaxis()->SetBinLabel(i+1,sLabelEventCounter[i].Data()); }
   // multiplicity dist
   TH1D* hEventMultAll = new TH1D("hEventMultAll","Event multiplicity (all events); n tracklets",200,0,200);
   TH1D* hEventMultAllPhysSel = new TH1D("hEventMultAllPhysSel","Event multiplicity (all events passing Phys. Selection); n tracklets",200,0,200);
@@ -154,9 +160,7 @@ void ProcessTrigger()
   TH1D* hPtCVHMSH2Thrs95PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs95PhysSelEventCuts","Pt dist (CVHMSH2|above 95%); track pt (GeV/c)",100,0,100);
 
 
-
   // variables inside loop
-
   Double_t dNumFORon = -1.;
   Double_t dNumFORof = -1.;
 
@@ -168,6 +172,12 @@ void ProcessTrigger()
   // looping over entries
   Int_t numEvents = eventTree->GetEntriesFast();
   printf("Found %d events\nTo be processed: %d\n",numEvents,iNumEventsToProcess);
+
+  // Counters
+  Int_t iNumEventsINT7 = 0;
+  Int_t iNumEventsVHMSH2 = 0;
+  Int_t iNumEventsINT7PhysSel = 0;
+  Int_t iNumEventsVHMSH2PhysSel = 0;
 
   for (Int_t i(0); i < numEvents; i++)
   {
@@ -198,11 +208,11 @@ void ProcessTrigger()
     // bIs0VHM = (fV0AFlagsBB >=1 && fV0CFlagsBB >=1 && fV0AFlagsBG <=15 && fV0CFlagsBG <=3);
     // bIs0SH2 = (dNumFORon >= 70);
 
-    if(bIsCINT7) { hEventCounter->Fill("INT7",1); }
+    if(bIsCINT7) { hEventCounter->Fill("INT7",1); iNumEventsINT7++; }
+    if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); iNumEventsVHMSH2++; }
     if(bIs0SH2) { hEventCounter->Fill("SH2",1); }
     if(bIs0VHM) { hEventCounter->Fill("VHM",1); }
     if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("INT7 & SH2 & VHM",1); }
-    if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); }
     if(bCheckVHMSPDconsistency && bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
     {
       hEventCounter->Fill("INT7 && SH2 & VHM & !VHMSH2",1);
@@ -225,6 +235,7 @@ void ProcessTrigger()
 
       if(fPhysSelPassed)
       {
+        iNumEventsINT7PhysSel++;
         hEventMultINT7PhysSel->Fill(fNumTracklets);
         // AddArrToHist(fTracksPt,hPtCINT7AllPhysSel);
       }
@@ -243,6 +254,7 @@ void ProcessTrigger()
 
       if(fPhysSelPassed)
       {
+        iNumEventsVHMSH2PhysSel++;
         hEventMultCVHMSH2PhysSel->Fill(fNumTracklets);
         // AddArrToHist(fTracksPt,hPtCVHMSH2AllPhysSel);
       }
@@ -255,6 +267,21 @@ void ProcessTrigger()
     }
 
   }
+
+  // obtaining rejection factors : # triggered events / # all (INT7) events
+  Double_t dRejectionFactor = -1.;
+  Double_t dRejectionFactorPhysSel = -1.;
+  if(iNumEventsINT7 > 0.) dRejectionFactor = 1. * iNumEventsVHMSH2 / iNumEventsINT7;
+  if(iNumEventsINT7PhysSel > 0.) dRejectionFactorPhysSel = 1. * iNumEventsVHMSH2PhysSel / iNumEventsINT7PhysSel;
+  printf("Rejection factor (w/o PhysSel): %g\n",dRejectionFactor);
+  printf("Rejection factor (with PhysSel): %g\n",dRejectionFactorPhysSel);
+  // printf("After PS: %d (SH2) / %d (MB)\n",iNumEventsVHMSH2PhysSel,iNumEventsINT7PhysSel);
+
+  TH1D* hRejectionFactor = new TH1D("hRejectionFactor","Rejection factors; ; Rejection factor", 2,0,2);
+  hRejectionFactor->GetXaxis()->SetBinLabel(1,"w/o PhysSel");
+  hRejectionFactor->GetXaxis()->SetBinLabel(2,"with PhysSel");
+  hRejectionFactor->SetBinContent(1,dRejectionFactor);
+  hRejectionFactor->SetBinContent(2,dRejectionFactorPhysSel);
 
   // obtaining Purity
   TH1D* hPurityAll = (TH1D*) hEventMultAll->Clone("hPurityAll");
@@ -271,13 +298,25 @@ void ProcessTrigger()
 
   // obtaining efficiency, threshold, turn-on
   TH1D* hEffPhysSel = GetEfficiency(hEventMultCVHMSH2PhysSel,hEventMultINT7PhysSel);
-  hEffPhysSel->SetNameTitle("hEffCVHMSH2CINT7PhysSel","Efficiency CVHMSH2 / CINT7 (after PhysSel); n tracklets; eff.");
+  hEffPhysSel->SetNameTitle("hEffPhysSel","Efficiency CVHMSH2 / CINT7 (after PhysSel); n tracklets; eff.");
   Int_t iThrs90 = hEffPhysSel->FindFirstBinAbove(0.9,1) - 1;
   Int_t iThrs95 = hEffPhysSel->FindFirstBinAbove(0.95,1) - 1;
   printf("Eff. threshold multiplicity: %d tracklets (90%%) | %d tracklets (95%%)\n",iThrs90,iThrs95);
   Double_t dTurnOn90 = GetTurnOn(hEventMultCVHMSH2PhysSel,iThrs90);
   Double_t dTurnOn95 = GetTurnOn(hEventMultCVHMSH2PhysSel,iThrs95);
   printf("Turn-on: %g (90%%) | %g (95%%)\n",dTurnOn90,dTurnOn95);
+
+  TH1I* hThrsPhysSel = new TH1I("hThrsPhysSel","Threshold",2,0,2);
+  hThrsPhysSel->GetXaxis()->SetBinLabel(1,"90%");
+  hThrsPhysSel->GetXaxis()->SetBinLabel(2,"95%");
+  hThrsPhysSel->SetBinContent(1,iThrs90);
+  hThrsPhysSel->SetBinContent(2,iThrs95);
+
+  TH1D* hTurnonPhysSel = new TH1D("hTurnonPhysSel","TurnOn",2,0,2);
+  hTurnonPhysSel->GetXaxis()->SetBinLabel(1,"90%");
+  hTurnonPhysSel->GetXaxis()->SetBinLabel(2,"95%");
+  hTurnonPhysSel->SetBinContent(1,dTurnOn90);
+  hTurnonPhysSel->SetBinContent(2,dTurnOn95);
 
   if(bProcessPtTurnOn)
   {
@@ -332,7 +371,6 @@ void ProcessTrigger()
 
   }
 
-
   // obtaining pt dep. turn-on
   TH1D* hPtTurnOnAll = (TH1D*) hPtCVHMSH2AllPhysSel->Clone("hPtTurnOnAll");
   hPtTurnOnAll->Divide(hPtCVHMSH2AllPhysSel,hPtCINT7AllPhysSel,1.,1.);
@@ -374,11 +412,15 @@ void ProcessTrigger()
     hPtCVHMSH2Thrs95PhysSel->Write();
     hPtCVHMSH2Thrs95PhysSelEventCuts->Write();
 
+    hRejectionFactor->Write();
+
     hPurityAll->Write();
     hPurityINT7->Write();
     hPurityCVHMSH2->Write();
 
     hEffPhysSel->Write();
+    hThrsPhysSel->Write();
+    hTurnonPhysSel->Write();
 
     hPtTurnOnAll->Write();
     hPtTurnOnThrs90->Write();
@@ -386,7 +428,6 @@ void ProcessTrigger()
   }
 
   // Drawing stuff
-
   hEventMultAllPhysSel->SetLineColor(kRed);
   hEventMultINT7PhysSel->SetLineColor(kRed);
   hEventMultCVHMSH2PhysSel->SetLineColor(kRed);
@@ -439,8 +480,8 @@ void ProcessTrigger()
   hEventMultCVHMSH2PhysSel->Draw("same");
   lineThrs90->DrawLine(iThrs90,0.,iThrs90,hEventMultINT7PhysSel->GetMaximum());
   lineThrs95->DrawLine(iThrs95,0.,iThrs95,hEventMultINT7PhysSel->GetMaximum());
-  latexThrs90->DrawLatex(0.5,0.65, TString::Format("90%%: %g %%",dTurnOn90).Data());
-  latexThrs95->DrawLatex(0.5,0.7, TString::Format("95%%: %g %%",dTurnOn95).Data());
+  latexThrs90->DrawLatex(0.5,0.65, TString::Format("90%%: %g",dTurnOn90).Data());
+  latexThrs95->DrawLatex(0.5,0.7, TString::Format("95%%: %g",dTurnOn95).Data());
   canEff->cd(2);
   hEffPhysSel->Draw();
   lineThrs90->DrawLine(iThrs90,0.,iThrs90,1.);
@@ -456,11 +497,9 @@ void ProcessTrigger()
   canPtTurn->cd(3);
   hPtTurnOnThrs95->Draw();
 
-
-
   return;
 }
-
+//_____________________________________________________________________________
 TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
 {
   // Example of making histo out of TArray
@@ -490,7 +529,7 @@ TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
   // printf("seems fine\n");
   return;
 }
-
+//_____________________________________________________________________________
 TH1D* GetEfficiency(TH1D* trigger, TH1D* mb)
 {
   if(!trigger || !mb) { printf("ERROR: histos does not exists!\n"); return 0x0; }
@@ -500,7 +539,7 @@ TH1D* GetEfficiency(TH1D* trigger, TH1D* mb)
 
   return hEfficiency;
 }
-
+//_____________________________________________________________________________
 Double_t GetTurnOn(TH1D* mult, Int_t threshold)
 {
   if(!mult) { printf("ERROR: Multiplicity histo does not exists!\n"); return -1.; }
@@ -511,3 +550,4 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold)
   // printf("Histo: Entries %g | ntegral %g | single bin (thrs) %g \n",mult->GetEntries(), mult->Integral(threshold,mult->GetNbinsX()+1), mult->Integral(threshold,threshold));
   return dInt / dEntries;
 }
+//_____________________________________________________________________________
