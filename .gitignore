@@ -1,39 +1,41 @@
-# MacOS
-.DS_Store
-
-# Misc
-alice
-*.root
-*.pdf
+### C++ ###
+# Prerequisites
+*.d
 
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
-*.d
-*.so
-
-# Precompiled Headers
-*.gch
-*.pch
 
 # Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
+### ROOT specific ###
+*.root
+*.jdl
+*_merge.C
+*_merge.sh
+*_validation.sh
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
-*.lib
+### OTHERS ###
+*.xml
+*.tmp
+*.zip
+.DS_Store 			# Mac specific
 
-# Executables
-*.exe
-*.out
-*.app
+# Images/Pictures #
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+### Directories ###
+/etc/*
+/original_bk/*
+/TriggerStudies/*
+/upcTree/*
+/newTask/running/*
