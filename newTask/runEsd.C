@@ -1,12 +1,13 @@
-Bool_t local = 1;
+Bool_t local = 0;
 Bool_t gridTest = 0;
 
 // periods LHC 2016 datasets pp 13 TeV
 // LHC16k:  RunList_LHC16k_pass1_CentralBarrelTracking_electronPID_20170217_v2.txt [194 runs]
-TString dataDir = "/alice/data/2016/LHC16k";
+TString dataDir = "/alice/data/2016/LHC16p";
 TString dataPattern = "/pass1/*/AliESDs.root";
-TString workingDir = "hm-16k";
+TString workingDir = "hm-16p";
 
+// LHC16k
 Int_t runList[] = {
   258537, 258499, 258477, 258456, 258454, 258452, 258426, 258393, 258391, 258387,
   258359, 258336, 258332, 258307, 258306, 258303, 258302, 258301, 258299, 258278,
@@ -30,8 +31,27 @@ Int_t runList[] = {
   256512, 256510, 256506, 256504
 };
 
-// Int_t nRuns = 5; // 194;
-Int_t nRuns = sizeof(runList) / sizeof(runList[0]);
+// LHC16p
+Int_t runList[] = {
+  264347, 264346, 264345, 264341, 264336, 264312, 264306, 264305, 264281, 264279,
+  264277, 264273, 264267, 264266, 264265, 264264, 264262, 264261, 264260, 264259,
+  264238, 264235, 264233, 264232, 264198, 264197, 264194, 264190, 264188, 264168,
+  264164, 264139, 264138, 264137, 264129, 264110, 264109, 264086, 264085, 264082,
+  264078, 264076
+};
+
+//LHC15l
+Int_t runList[] = {
+  241544, 241542, 241531, 241523, 241521, 241513, 241511, 241508, 241412, 241407,
+  241361, 241360, 241354, 241296, 241295, 241288, 241281, 241268, 241267, 241263,
+  241261, 241257, 241144, 241141, 241075, 241069, 241062, 241057, 241055, 241054,
+  241050, 241047, 241010, 241001, 240874, 240872, 240860, 240854, 240845, 240612,
+  240610, 240609, 240452, 240450, 240312, 240303, 240293, 240274, 240271, 240265,
+  240262, 240241, 240069, 239519, 239319
+};
+
+Int_t nRuns = 50; // 194;
+// Int_t nRuns = sizeof(runList) / sizeof(runList[0]);
 
 void runEsd(){
   gSystem->AddIncludePath("-I. -I$ALICE_ROOT/include -I$ALICE_PHYSICS/include");
@@ -121,7 +141,7 @@ void runEsd(){
     alienHandler->SetOutputToRunNo(kTRUE);
     alienHandler->SetKeepLogs(kTRUE);
 
-    alienHandler->SetMaxMergeStages(1);
+    alienHandler->SetMaxMergeStages(2);
     alienHandler->SetMergeViaJDL(kTRUE);
 
     // define the output folders
@@ -132,7 +152,7 @@ void runEsd(){
     mgr->SetGridHandler(alienHandler);
     if(gridTest) {
         // speficy on how many files you want to run
-        alienHandler->SetNtestFiles(10);
+        alienHandler->SetNtestFiles(2);
         // and launch the analysis
         alienHandler->SetRunMode("test");
         mgr->StartAnalysis("grid");
