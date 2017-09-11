@@ -6,12 +6,12 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 void ProcessTrigger()
 {
   // parameters
-  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
+  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
   // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
   Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
-
+  Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -88,7 +88,7 @@ void ProcessTrigger()
   eventTree->SetBranchAddress("fBC",&fBC);
   eventTree->SetBranchAddress("fL0inputs",&fL0inputs);
   eventTree->SetBranchAddress("fL1inputs",&fL1inputs);
-  eventTree->SetBranchAddress("fFiredTriggerInputs",&fFiredTriggerInputs);
+  if(bCheckVHMSPDconsistency) eventTree->SetBranchAddress("fFiredTriggerInputs",&fFiredTriggerInputs);
   eventTree->SetBranchAddress("fIR1",&fIR1);
   eventTree->SetBranchAddress("fIR2",&fIR2);
   eventTree->SetBranchAddress("fNumTracklets",&fNumTracklets);
@@ -181,8 +181,12 @@ void ProcessTrigger()
     // trigger classes check
     bIsCINT7 = fClassesFired->String().Contains("CINT7");
     bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
-    bIs0SH2 = fFiredTriggerInputs->String().Contains("0SH2");
-    bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
+
+    if(bCheckVHMSPDconsistency)
+    {
+      bIs0SH2 = fFiredTriggerInputs->String().Contains("0SH2");
+      bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
+    }
 
     // From Michele analysis.C macro : apparently definition changed from 15l -> 16k (not working)
     // bIs0VHM = fL0inputs & 1<<10;
@@ -197,14 +201,17 @@ void ProcessTrigger()
     if(bIs0VHM) { hEventCounter->Fill("VHM",1); }
     if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("INT7 & SH2 & VHM",1); }
     if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); }
-    if(bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
+    if(bCheckVHMSPDconsistency && bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
     {
       hEventCounter->Fill("INT7 && SH2 & VHM & !VHMSH2",1);
       printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
       printf(" L0 inputs: %d | SH2 %d | VHM %d | VHMSH2 %d | INT7 %d\n", fL0inputs, bIs0SH2, bIs0VHM, bIsCVHMSH2, bIsCINT7);
     }
 
+    if(!bIsCINT7) continue; // SPDHM should be subset of INT7 (MB) logic
+
     // Purity(multiplicity) = #Events after Phys.Selection / #Events
+
     hEventMultAll->Fill(fNumTracks);
     if(fPhysSelPassed) hEventMultAllPhysSel->Fill(fNumTracklets);
     if(fPhysSelPassed && fEventCutsPassed) hEventMultAllPhysSelEventCuts->Fill(fNumTracklets);
