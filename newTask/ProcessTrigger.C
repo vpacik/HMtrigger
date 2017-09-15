@@ -10,7 +10,7 @@ void ProcessTrigger()
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
   // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  Int_t iNumEventsToProcess = 500000; // number of events to be processed; if -1 all are processed
+  Int_t iNumEventsToProcess = 200000; // number of events to be processed; if -1 all are processed
   Bool_t bProcessPtTurnOn = kFALSE; // flag for processing pt-dependent turn on (need to run over event twice)
 
   Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
@@ -372,6 +372,14 @@ void ProcessTrigger()
   }
 
   // obtaining pt dep. turn-on
+  hPtCINT7AllPhysSel->Scale(1./iNumEventsINT7PhysSel);
+  hPtCVHMSH2AllPhysSel->Scale(1./iNumEventsINT7PhysSel);
+  hPtCVHMSH2Thrs90PhysSel->Scale(1./iNumEventsINT7PhysSel);
+  hPtCVHMSH2Thrs95PhysSel->Scale(1./iNumEventsINT7PhysSel);
+  // hPtCVHMSH2AllPhysSel->Scale(1./iNumEventsVHMSH2PhysSel);
+  // hPtCVHMSH2Thrs90PhysSel->Scale(1./iNumEventsVHMSH2PhysSel);
+  // hPtCVHMSH2Thrs95PhysSel->Scale(1./iNumEventsVHMSH2PhysSel);
+
   TH1D* hPtTurnOnAll = (TH1D*) hPtCVHMSH2AllPhysSel->Clone("hPtTurnOnAll");
   hPtTurnOnAll->Divide(hPtCVHMSH2AllPhysSel,hPtCINT7AllPhysSel,1.,1.);
   hPtTurnOnAll->SetTitle("Pt turn-on (all); track pt (GeV/c); trigger/MB");
@@ -488,14 +496,28 @@ void ProcessTrigger()
   lineThrs95->DrawLine(iThrs95,0.,iThrs95,1.);
 
   // pt turn on
-  TCanvas* canPtTurn = new TCanvas("canPtTurn","canPtTurn",1500,500);
-  canPtTurn->Divide(3,1);
+  TCanvas* canPtTurn = new TCanvas("canPtTurn","canPtTurn",1500,1000);
+  canPtTurn->Divide(3,2);
+
   canPtTurn->cd(1);
-  hPtTurnOnAll->Draw();
+  gPad->SetLogy();
+  hPtCINT7AllPhysSel->Draw();
+  hPtCVHMSH2AllPhysSel->Draw("same");
   canPtTurn->cd(2);
-  hPtTurnOnThrs90->Draw();
+  gPad->SetLogy();
+  hPtCINT7AllPhysSel->Draw();
+  hPtCVHMSH2Thrs90PhysSel->Draw("same");
   canPtTurn->cd(3);
+  gPad->SetLogy();
+  hPtCINT7AllPhysSel->Draw();
+  hPtCVHMSH2Thrs95PhysSel->Draw("same");
+  canPtTurn->cd(4);
+  hPtTurnOnAll->Draw();
+  canPtTurn->cd(5);
+  hPtTurnOnThrs90->Draw();
+  canPtTurn->cd(6);
   hPtTurnOnThrs95->Draw();
+
 
   return;
 }
