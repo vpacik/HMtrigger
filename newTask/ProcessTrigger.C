@@ -1,21 +1,32 @@
+#include "TFile.h"
+#include "TTree.h"
+#include "TObjString.h"
+#include "TBits.h"
+#include "TH1.h"
+#include "TH2.h"
+#include "TCanvas.h"
+#include "TPad.h"
+#include "TLatex.h"
+#include "TLine.h"
+
 
 void AddArrToHist(TArrayD* arr, TH1D* hist);
 void AddArrToHist2D(TArrayD* arr, TH2D* hist, Int_t mult);
 TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
 Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
-void ProcessTrigger()
+void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 {
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16p/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l/AnalysisResults.root";
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
 
-  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16p/";
+  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l/";
   // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
 
   // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
+  // Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
 
   Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
 
@@ -357,6 +368,18 @@ void ProcessTrigger()
   TH1D* hPtDistVHMSH2PhysSelThrs90 = (TH1D*) h2PtVHMSH2PhysSel->ProjectionX("hPtDistVHMSH2PhysSelThrs90",iThrs90,-1);
   TH1D* hPtDistVHMSH2PhysSelThrs95 = (TH1D*) h2PtVHMSH2PhysSel->ProjectionX("hPtDistVHMSH2PhysSelThrs95",iThrs95,-1);
 
+  // printf("#Events: SH2 %d (all) %g (90%%) %g (95%%)\n INT7 %d (all) %g (90%%) %g (95%%)\n",iNumEventsVHMSH2PhysSel, iNumEventsVHMSH2PhysSel*dTurnOn90, iNumEventsVHMSH2PhysSel*dTurnOn95, iNumEventsINT7PhysSel, iNumEventsINT7PhysSel, iNumEventsINT7PhysSel);
+
+
+  // hPtDistINT7PhysSelAll->Scale(1.);
+  // hPtDistINT7PhysSelAll->Scale(1./iNumEventsINT7PhysSel);
+  // hPtDistINT7PhysSelThrs90->Scale(1./iNumEventsINT7PhysSel);
+  // hPtDistINT7PhysSelThrs95->Scale(1./iNumEventsINT7PhysSel);
+  // hPtDistVHMSH2PhysSelAll->Scale(1.);
+  // hPtDistVHMSH2PhysSelAll->Scale(1./iNumEventsVHMSH2PhysSel);
+  // hPtDistVHMSH2PhysSelThrs90->Scale(1./iNumEventsVHMSH2PhysSel);
+  // hPtDistVHMSH2PhysSelThrs95->Scale(1./iNumEventsVHMSH2PhysSel);
+
   TH1D* hPtTurnOnAll = (TH1D*) hPtDistVHMSH2PhysSelAll->Clone("hPtTurnOnAll");
   hPtTurnOnAll->Divide(hPtDistVHMSH2PhysSelAll,hPtDistINT7PhysSelAll,1.,1.);
   hPtTurnOnAll->SetTitle("Pt turn-on (all); track pt (GeV/c); trigger/INT7");
@@ -494,7 +517,7 @@ void ProcessTrigger()
   latexThrs95->SetNDC();
   latexThrs95->SetTextColor(kGreen+2);
 
-  TCanvas* canEff = new TCanvas("canEff","canEff");
+  TCanvas* canEff = new TCanvas("canEff","canEff",1000,500);
   canEff->Divide(2,1);
   canEff->cd(1);
   gPad->SetLogy();
@@ -508,9 +531,10 @@ void ProcessTrigger()
   hEventMultCVHMSH2PhysSel->Draw("same");
   lineThrs90->DrawLine(iThrs90,0.,iThrs90,hEventMultINT7PhysSel->GetMaximum());
   lineThrs95->DrawLine(iThrs95,0.,iThrs95,hEventMultINT7PhysSel->GetMaximum());
-  latexThrs90->DrawLatex(0.5,0.65, TString::Format("90%%: %g",dTurnOn90).Data());
-  latexThrs95->DrawLatex(0.5,0.7, TString::Format("95%%: %g",dTurnOn95).Data());
+  latexThrs90->DrawLatex(0.46,0.65, TString::Format("90%% (%d): %g",iThrs90,dTurnOn90).Data());
+  latexThrs95->DrawLatex(0.46,0.7, TString::Format("95%% (%d): %g",iThrs95,dTurnOn95).Data());
   canEff->cd(2);
+  hEffPhysSel->SetStats(0);
   hEffPhysSel->Draw();
   lineThrs90->DrawLine(iThrs90,0.,iThrs90,1.);
   lineThrs95->DrawLine(iThrs95,0.,iThrs95,1.);
@@ -643,7 +667,7 @@ void ProcessTrigger()
   return;
 }
 //_____________________________________________________________________________
-TH1D* AddArrToHist(TArrayD* arr, TH1D* hist)
+void AddArrToHist(TArrayD* arr, TH1D* hist)
 {
   // Example of making histo out of TArray
   // for(Short_t j(0); j < 100; j++)
