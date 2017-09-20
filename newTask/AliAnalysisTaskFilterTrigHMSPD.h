@@ -26,7 +26,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     TH1D*               fhEventCounter; //! Event counter
 
     TTree*              fTree; //! output TTree
-    TObjString*          fClassesFired; // list of fired trigger classes
+    TObjString*         fClassesFired; // list of fired trigger classes
     UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
     Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
     Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
@@ -38,6 +38,8 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     UShort_t            fBC; // bunch cross (BX) number
     UInt_t              fL0inputs; // L0 trigger inputs
     UInt_t              fL1inputs; // L1 trigger inputs
+    TObjString*         fFiredTriggerInputs; // list of fired trigger inputs
+
     TBits               fIR1; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
     TBits               fIR2; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
 
