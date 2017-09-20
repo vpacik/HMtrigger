@@ -19,16 +19,14 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 {
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16o/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/AnalysisResults.root";
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
 
-  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16o/";
+  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
   // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
 
-  // Int_t iNumEventsToProcess = -1; // number of events to be processed; if -1 all are processed
-  // Int_t iNumEventsToProcess = 100000; // number of events to be processed; if -1 all are processed
-
-  Bool_t bCheckVHMSPDconsistency = kFALSE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
+  Bool_t bPeriod15l = kTRUE; // LHC15l flag for checking 0SH2 && VHM trigger classes
+  Bool_t bCheckVHMSPDconsistency = kTRUE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
 
   // loading input (filtered) TTree & list with histos
   TFile* fInputFile = new TFile(sInputFile,"READ");
@@ -144,9 +142,10 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 
   // ### Histograms ###
 
-  TString sLabelEventCounter[] = {"Input", "INT7", "SH2", "VHM", "INT7 & SH2 & VHM", "VHMSH2", "INT7 && SH2 & VHM & !VHMSH2"};
+  TString sLabelEventCounter[] = {"Input", "INT7", "SH2", "VHM", "SH2 & VHM", "INT7 & SH2 & VHM", "VHMSH2", "INT7 & SH2 & VHM & !VHMSH2","INT7 & VHMSH2 & !(SH2 || VHM)"};
   Int_t iNumBinsEventCounter = sizeof(sLabelEventCounter)/sizeof(sLabelEventCounter[0]);
 
+  // TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",1,0,1);
   TH1D* hEventCounter = new TH1D("hEventCounter","Event counter",iNumBinsEventCounter,0,iNumBinsEventCounter);
   for(Int_t i(0); i < iNumBinsEventCounter; i++) { hEventCounter->GetXaxis()->SetBinLabel(i+1,sLabelEventCounter[i].Data()); }
   TH2D* h2EventCounter = new TH2D("h2EventCounter","Event counter", 1,0,1, 1,0,1);
@@ -186,7 +185,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
   TH1D* hPtCVHMSH2Thrs95PhysSelEventCuts = new TH1D("hPtCVHMSH2Thrs95PhysSelEventCuts","Pt dist (CVHMSH2 && PhysSel && EventCuts | above 95%); track pt (GeV/c)",100,0,100);
 
   // variables inside loop
-  const char* sRunNumber = Form("%d",fRunNumber);
+  const char* sRunNumber = "";
 
   Double_t dNumFORon = -1.;
   Double_t dNumFORof = -1.;
@@ -212,16 +211,16 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
     // if(i > 5) break;
     if( iNumEventsToProcess >= 0 && i > iNumEventsToProcess) break;
     if( (i % 100000) == 0) printf("=== Procesed %d / %d events === \n",i,numEvents);
+
     eventTree->GetEvent(i);
+    sRunNumber = Form("%d",fRunNumber);
+
     hEventCounter->Fill("Input",1);
     h2EventCounter->Fill(sRunNumber,"Input",1);
 
     dNumFORon = fFiredChipMapFO->CountBits(400);
     dNumFORof = fFiredChipMap->CountBits(400);
 
-    // trigger classes check
-    bIsCINT7 = fClassesFired->String().Contains("CINT7");
-    bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2");
 
     if(bCheckVHMSPDconsistency)
     {
@@ -229,27 +228,49 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
       bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
     }
 
-    // From Michele analysis.C macro : apparently definition changed from 15l -> 16k (not working)
-    // bIs0VHM = fL0inputs & 1<<10;
-    // bIs0SH2 = fL0inputs & 1<<13;
+    // trigger classes check
+    bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
+    if(bPeriod15l) bIsCVHMSH2 = (bIs0VHM && bIs0SH2 && bIsCINT7);
+    else bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
+
+
+    // if(bPeriod15l)
+    // {
+    //   // From Michele analysis.C macro : apparently definition changed from 15l -> 16k (not working)
+    //   // bIs0VHM = fL0inputs & 1<<10;
+    //   // bIs0SH2 = fL0inputs & 1<<13;
+    // }
 
     // by hand implementation (true? apparently SH2 requires at least 1 BG flag)
     // bIs0VHM = (fV0AFlagsBB >=1 && fV0CFlagsBB >=1 && fV0AFlagsBG <=15 && fV0CFlagsBG <=3);
     // bIs0SH2 = (dNumFORon >= 70);
 
     if(bIsCINT7) { hEventCounter->Fill("INT7",1); iNumEventsINT7++; }
-    if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); iNumEventsVHMSH2++; }
     if(bIs0SH2) { hEventCounter->Fill("SH2",1); }
     if(bIs0VHM) { hEventCounter->Fill("VHM",1); }
+    if(bIs0SH2 && bIs0VHM) { hEventCounter->Fill("SH2 & VHM",1); }
     if(bIsCINT7 && bIs0SH2 && bIs0VHM) { hEventCounter->Fill("INT7 & SH2 & VHM",1); }
-    if(bCheckVHMSPDconsistency && bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
+    if(bIsCVHMSH2) { hEventCounter->Fill("VHMSH2",1); iNumEventsVHMSH2++; }
+
+    if(bCheckVHMSPDconsistency)
     {
-      hEventCounter->Fill("INT7 && SH2 & VHM & !VHMSH2",1);
-      printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
-      printf(" L0 inputs: %d | SH2 %d | VHM %d | VHMSH2 %d | INT7 %d\n", fL0inputs, bIs0SH2, bIs0VHM, bIsCVHMSH2, bIsCINT7);
+      if(bIsCINT7 && bIs0SH2 && bIs0VHM && !bIsCVHMSH2)
+      {
+        hEventCounter->Fill("INT7 & SH2 & VHM & !VHMSH2",1);
+        // printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
+        // printf(" L0 inputs: %d | SH2 %d | VHM %d | VHMSH2 %d | INT7 %d\n", fL0inputs, bIs0SH2, bIs0VHM, bIsCVHMSH2, bIsCINT7);
+      }
+
+      if(bIsCINT7 && bIsCVHMSH2 && !(bIs0SH2 || bIs0VHM))
+      {
+        hEventCounter->Fill("INT7 & VHMSH2 & !(SH2 || VHM)",1);
+        // printf(" !!! INT7 && !SH2: #FO %d (on) %d (off) | BB %d (A) %d (C) | BG %d (A) %d (C)\n",(Short_t)dNumFORon,(Short_t)dNumFORof,fV0AFlagsBB,fV0CFlagsBB,fV0AFlagsBG,fV0CFlagsBG);
+        // printf(" L0 inputs: %d | SH2 %d | VHM %d | VHMSH2 %d | INT7 %d\n", fL0inputs, bIs0SH2, bIs0VHM, bIsCVHMSH2, bIsCINT7);
+      }
     }
 
     if(!bIsCINT7) continue; // SPDHM should be subset of INT7 (MB) logic
+
 
     // Purity(multiplicity) = #Events after Phys.Selection / #Events
 
@@ -441,7 +462,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
     hPtTurnOnThrs90->Write();
     hPtTurnOnThrs95->Write();
   }
-  
+
   return;
 }
 //_____________________________________________________________________________

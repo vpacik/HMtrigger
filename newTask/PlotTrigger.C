@@ -1,7 +1,9 @@
 void PlotTrigger()
 {
-  const char* sInputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16o/";
+  const char* sInputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
+  // const char* sInputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
   TString sOutputPath = sInputPath;
+  // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/";
 
 
   // loading stuff
@@ -129,6 +131,10 @@ void PlotTrigger()
   latexThrs95->SetNDC();
   latexThrs95->SetTextColor(kGreen+2);
 
+
+  // hEventMultINT7PhysSel->Scale(1/0.00162);
+  // hEventMultCVHMSH2PhysSel->Scale(1/0.25);
+
   TCanvas* canEff = new TCanvas("canEff","canEff",1000,500);
   canEff->Divide(2,1);
   canEff->cd(1);
@@ -154,6 +160,21 @@ void PlotTrigger()
 
 
   // pt turn on
+
+  // scaling distributions -> pdf
+  hPtDistINT7PhysSelAll->Scale(1/hPtDistINT7PhysSelAll->Integral(1,hPtDistINT7PhysSelAll->GetNbinsX()));
+  hPtDistVHMSH2PhysSelAll->Scale(1/hPtDistVHMSH2PhysSelAll->Integral(1,hPtDistVHMSH2PhysSelAll->GetNbinsX()));
+  hPtDistINT7PhysSelThrs90->Scale(1/hPtDistINT7PhysSelThrs90->Integral(1,hPtDistINT7PhysSelThrs90->GetNbinsX()));
+  hPtDistVHMSH2PhysSelThrs90->Scale(1/hPtDistVHMSH2PhysSelThrs90->Integral(1,hPtDistVHMSH2PhysSelThrs90->GetNbinsX()));
+  hPtDistINT7PhysSelThrs95->Scale(1/hPtDistINT7PhysSelThrs95->Integral(1,hPtDistINT7PhysSelThrs95->GetNbinsX()));
+  hPtDistVHMSH2PhysSelThrs95->Scale(1/hPtDistVHMSH2PhysSelThrs95->Integral(1,hPtDistVHMSH2PhysSelThrs95->GetNbinsX()));
+
+  // recomputing turnon
+  hPtTurnOnAll->Divide(hPtDistVHMSH2PhysSelAll,hPtDistINT7PhysSelAll);
+  hPtTurnOnThrs90->Divide(hPtDistVHMSH2PhysSelThrs90,hPtDistINT7PhysSelThrs90);
+  hPtTurnOnThrs95->Divide(hPtDistVHMSH2PhysSelThrs95,hPtDistINT7PhysSelThrs95);
+
+
   TCanvas* canPtTurn = new TCanvas("canPtTurn","canPtTurn",1500,1000);
   canPtTurn->Divide(3,2);
   canPtTurn->cd(1);
@@ -164,7 +185,7 @@ void PlotTrigger()
   hPtDistVHMSH2PhysSelAll->SetLineColor(kRed);
   hPtDistVHMSH2PhysSelAll->SetFillColor(kRed);
   hPtDistVHMSH2PhysSelAll->SetFillStyle(3005);
-  hPtDistINT7PhysSelAll->SetMinimum(0.5);
+  // hPtDistINT7PhysSelAll->SetMinimum(0.5);
   hPtDistINT7PhysSelAll->Draw();
   hPtDistVHMSH2PhysSelAll->Draw("same");
   latexINT7->DrawLatex(0.5,0.65,"INT7");
@@ -178,7 +199,7 @@ void PlotTrigger()
   hPtDistVHMSH2PhysSelThrs90->SetLineColor(kRed);
   hPtDistVHMSH2PhysSelThrs90->SetFillColor(kRed);
   hPtDistVHMSH2PhysSelThrs90->SetFillStyle(3005);
-  hPtDistINT7PhysSelThrs90->SetMinimum(0.5);
+  // hPtDistINT7PhysSelThrs90->SetMinimum(0.5);
   hPtDistINT7PhysSelThrs90->Draw();
   hPtDistVHMSH2PhysSelThrs90->Draw("same");
   latexINT7->DrawLatex(0.5,0.65,"INT7");
@@ -192,7 +213,7 @@ void PlotTrigger()
   hPtDistVHMSH2PhysSelThrs95->SetLineColor(kRed);
   hPtDistVHMSH2PhysSelThrs95->SetFillColor(kRed);
   hPtDistVHMSH2PhysSelThrs95->SetFillStyle(3005);
-  hPtDistINT7PhysSelThrs95->SetMinimum(0.5);
+  // hPtDistINT7PhysSelThrs95->SetMinimum(0.5);
   hPtDistINT7PhysSelThrs95->Draw();
   hPtDistVHMSH2PhysSelThrs95->Draw("same");
   latexINT7->DrawLatex(0.5,0.65,"INT7");
@@ -202,17 +223,18 @@ void PlotTrigger()
   hPtTurnOnAll->SetMarkerStyle(kOpenCircle);
   hPtTurnOnAll->SetMarkerSize(0.8);
   hPtTurnOnAll->SetMarkerColor(kRed);
-  hPtTurnOnAll->SetMinimum(0.);
-  hPtTurnOnAll->SetMaximum(1.05);
+  hPtTurnOnAll->SetMinimum(0.5);
+  hPtTurnOnAll->SetMaximum(1.7);
   hPtTurnOnAll->SetStats(0);
   hPtTurnOnAll->Draw("p0");
+  // hPtTurnOnAll_New->Draw("same p0");
 
   canPtTurn->cd(5);
   hPtTurnOnThrs90->SetMarkerStyle(kOpenCircle);
   hPtTurnOnThrs90->SetMarkerSize(0.8);
   hPtTurnOnThrs90->SetMarkerColor(kRed);
-  hPtTurnOnThrs90->SetMinimum(0.);
-  hPtTurnOnThrs90->SetMaximum(1.05);
+  hPtTurnOnThrs90->SetMinimum(0.5);
+  hPtTurnOnThrs90->SetMaximum(1.5);
   hPtTurnOnThrs90->SetStats(0);
   hPtTurnOnThrs90->Draw("p0");
 
@@ -220,8 +242,8 @@ void PlotTrigger()
   hPtTurnOnThrs95->SetMarkerStyle(kOpenCircle);
   hPtTurnOnThrs95->SetMarkerSize(0.8);
   hPtTurnOnThrs95->SetMarkerColor(kRed);
-  hPtTurnOnThrs95->SetMinimum(0.);
-  hPtTurnOnThrs95->SetMaximum(1.05);
+  hPtTurnOnThrs95->SetMinimum(0.5);
+  hPtTurnOnThrs95->SetMaximum(1.5);
   hPtTurnOnThrs95->SetStats(0);
   hPtTurnOnThrs95->Draw("p0");
   canPtTurn->SaveAs(Form("%s/canPtTurn.pdf",sOutputPath.Data()),"pdf");
