@@ -54,6 +54,9 @@ void PlotTrigger()
   Double_t dTurnOn90 = hTurnonPhysSel->GetBinContent(1);
   Double_t dTurnOn95 = hTurnonPhysSel->GetBinContent(2);
 
+  Double_t dPurityINT7 = hEventMultINT7PhysSel->GetEntries() / hEventMultINT7->GetEntries();
+  Double_t dPurityVHMSH2 = hEventMultCVHMSH2PhysSel->GetEntries() / hEventMultCVHMSH2->GetEntries();
+
   TLatex* latexINT7 = new TLatex();
   latexINT7->SetNDC();
   latexINT7->SetTextColor(kBlue);
@@ -80,7 +83,6 @@ void PlotTrigger()
   latexINT7->DrawLatex(0.5,0.65,"Before PhysSel");
   latexVHMSH2->DrawLatex(0.5,0.7,"After PhysSel");
 
-
   canPurity->cd(2);
   gPad->SetLogy();
   hEventMultCVHMSH2->SetLineColor(kBlue);
@@ -106,6 +108,7 @@ void PlotTrigger()
   hPurityINT7->SetMinimum(0);
   hPurityINT7->SetMaximum(1.05);
   hPurityINT7->Draw("p0");
+  latexVHMSH2->DrawLatex(0.55,0.8,Form("Int. purity: %g",dPurityINT7));
 
   canPurity->cd(4);
   hPurityCVHMSH2->SetMarkerStyle(kOpenCircle);
@@ -115,6 +118,7 @@ void PlotTrigger()
   hPurityCVHMSH2->SetMinimum(0);
   hPurityCVHMSH2->SetMaximum(1.05);
   hPurityCVHMSH2->Draw("p0");
+  latexVHMSH2->DrawLatex(0.55,0.8,Form("Int. purity: %g",dPurityVHMSH2));
   canPurity->SaveAs(Form("%s/canPurity.pdf",sOutputPath.Data()),"pdf");
 
   // efficiency
