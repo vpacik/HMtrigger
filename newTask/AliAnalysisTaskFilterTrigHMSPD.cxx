@@ -43,15 +43,19 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fFiredTriggerInputs(new TObjString()),
   fIR1(),
   fIR2(),
+  fNumContrSPD(0),
   fNumTracklets(0),
   fFiredChipMap(),
   fFiredChipMapFO(),
   fNumITSCls(),
   fTriggerMaskTOF(),
+  fV0PastFutureFilled(0),
   fV0ATotMult(0),
   fV0CTotMult(0),
   fV0ATime(0),
   fV0CTime(0),
+  fV0ATriggerCharge(0),
+  fV0CTriggerCharge(0),
   fV0AMult(),
   fV0CMult(),
   fV0AFlagsBB(0),
@@ -111,12 +115,16 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fFiredTriggerInputs",&fFiredTriggerInputs);
   fTree->Branch("fIR1",&fIR1);
   fTree->Branch("fIR2",&fIR2);
+  fTree->Branch("fNumContrSPD",&fNumContrSPD);
   fTree->Branch("fFiredChipMap",&fFiredChipMap);
   fTree->Branch("fFiredChipMapFO",&fFiredChipMapFO);
   fTree->Branch("fNumITSCls",&fNumITSCls,"fNumITSCls[6]/I");
   fTree->Branch("fTriggerMaskTOF",&fTriggerMaskTOF,"fTriggerMask[72]/I");
+  fTree->Branch("fV0PastFutureFilled",&fV0PastFutureFilled);
   fTree->Branch("fV0ATotMult",&fV0ATotMult);
   fTree->Branch("fV0CTotMult",&fV0CTotMult);
+  fTree->Branch("fV0ATriggerCharge",&fV0ATriggerCharge);
+  fTree->Branch("fV0CTriggerCharge",&fV0CTriggerCharge);
   fTree->Branch("fV0ATime",&fV0ATime);
   fTree->Branch("fV0CTime",&fV0CTime);
   fTree->Branch("fV0AMult",&fV0AMult,"fV0AMult[32]/F");
@@ -189,6 +197,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fL1inputs = fInputEvent->GetHeader()->GetL1TriggerInputs();
   fIR1 = fInputEvent->GetHeader()->GetIRInt1InteractionMap();
   fIR2 = fInputEvent->GetHeader()->GetIRInt2InteractionMap();
+  fNumContrSPD = fInputEvent->GetPrimaryVertexSPD()->GetNContributors();
   fFiredTriggerInputs->SetString( ( (AliESDHeader*)fInputEvent->GetHeader() )->GetFiredTriggerInputs() );
 
   // === do not know what exactly happens here ====
@@ -257,6 +266,9 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 
   // VZERO
   AliVVZERO* vzero = fInputEvent->GetVZEROData();
+  fV0PastFutureFilled = vzero->TestBit(AliVVZERO::kPastFutureFlagsFilled);
+  fV0ATriggerCharge = vzero->GetTriggerChargeA();
+  fV0CTriggerCharge = vzero->GetTriggerChargeC();
   fV0ATotMult = vzero->GetMTotV0A();
   fV0CTotMult = vzero->GetMTotV0C();
   fV0ATime = vzero->GetV0ATime();

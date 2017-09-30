@@ -42,6 +42,8 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     TBits               fIR1; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
     TBits               fIR2; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
+    Int_t               fNumContrSPD; // number of contributors to SPD PV
+
 
     Int_t               fNumTracklets; // number of tracklets
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
@@ -50,10 +52,13 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     UInt_t              fTriggerMaskTOF[72]; // TOF trigger mask array
     Float_t             fV0ATotMult; // total multiplicity in V0A
     Float_t             fV0CTotMult; // total multiplicity in V0C
+    UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
+    UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
     Float_t             fV0AMult[32]; // multiplicity in V0A cells
     Float_t             fV0CMult[32];  // multiplicity in V0C cells
     Float_t             fV0ATime; // average time in V0A
     Float_t             fV0CTime; // average time in V0C
+    Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
     Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
     Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
     Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
