@@ -15,6 +15,7 @@ void AddArrToHist2D(TArrayD* arr, TH2D* hist, Int_t mult);
 TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
 Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
+
 void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 {
   // parameters
@@ -24,6 +25,8 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 
   TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
   // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
+
+  TString sOutFile = "Processed_V0PFP.root";
 
   Bool_t bPeriod15l = kTRUE; // LHC15l flag for checking 0SH2 && VHM trigger classes
   Bool_t bCheckVHMSPDconsistency = kTRUE; // if true fFiredTriggerInputs are checked (available in newer implementeation)
@@ -228,6 +231,50 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
       bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
     }
 
+    // past-future protection (for lhc15l)
+
+    Bool_t bV0PFPileup = kFALSE;
+
+    if(bPeriod15l)
+    {
+      Int_t fVIRBBAflags = 10;
+      Int_t fVIRBBCflags = 10;
+      Int_t fVIRBGAflags = 33;
+      Int_t fVIRBGCflags = 33;
+
+      Bool_t vir[21] = {0};
+
+      for (Int_t bc = 0; bc < 21; bc++)
+      {
+        UChar_t nBBA = 0;
+        UChar_t nBBC = 0;
+        UChar_t nBGA = 0;
+        UChar_t nBGC = 0;
+
+        if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
+        if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
+        if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
+        if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
+
+        vir[bc] |= nBBA>=fVIRBBAflags;
+        vir[bc] |= nBBC>=fVIRBBCflags;
+        vir[bc] |= nBGA>=fVIRBGAflags;
+        vir[bc] |= nBGC>=fVIRBGCflags;
+      }
+
+      Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
+      Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
+      for (Int_t bc=bcMin;bc<=bcMax;bc++)
+      {
+        if (bc==10) continue; // skip current bc
+        if (bc < 0) continue;
+        if (bc >20) continue;
+        if (vir[bc]) bV0PFPileup = kTRUE;
+      }
+    }
+
+
+
     // trigger classes check
     bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
     if(bPeriod15l) bIsCVHMSH2 = (bIs0VHM && bIs0SH2 && bIsCINT7);
@@ -306,6 +353,11 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
     if(bIsCVHMSH2)
     {
       h2EventCounter->Fill(sRunNumber,"VHMSH2",1);
+
+      if(bV0PFPileup) continue;
+      
+      h2EventCounter->Fill(sRunNumber,"VHMSH2 (pass. V0PFP)",1);
+
       hEventMultCVHMSH2->Fill(fNumTracklets);
       AddArrToHist2D(fTracksPt,h2PtVHMSH2,fNumTracklets);
       // AddArrToHist(fTracksPt,hPtCVHMSH2All);
@@ -415,7 +467,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 
 
   // Writing to output file
-  TFile* fOutputFile = new TFile(Form("%sProcessed.root",sOutputPath.Data()),"RECREATE");
+  TFile* fOutputFile = new TFile(Form("%s%s",sOutputPath.Data(),sOutFile.Data()),"RECREATE");
   if(fOutputFile->IsOpen())
   {
     hEventCounter->Write();
