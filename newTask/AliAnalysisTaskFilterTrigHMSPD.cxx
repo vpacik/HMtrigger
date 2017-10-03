@@ -50,6 +50,7 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fNumITSCls(),
   fTriggerMaskTOF(),
   fV0PastFutureFilled(0),
+  fV0PastFuturePileUp(0),
   fV0ATotMult(0),
   fV0CTotMult(0),
   fV0ATime(0),
@@ -121,6 +122,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fNumITSCls",&fNumITSCls,"fNumITSCls[6]/I");
   fTree->Branch("fTriggerMaskTOF",&fTriggerMaskTOF,"fTriggerMask[72]/I");
   fTree->Branch("fV0PastFutureFilled",&fV0PastFutureFilled);
+  fTree->Branch("fV0PastFuturePileUp",&fV0PastFuturePileUp);
   fTree->Branch("fV0ATotMult",&fV0ATotMult);
   fTree->Branch("fV0CTotMult",&fV0CTotMult);
   fTree->Branch("fV0ATriggerCharge",&fV0ATriggerCharge);
@@ -285,8 +287,10 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fV0CTriggerBG[i] = vzero->BGTriggerV0C(i);
   }
 
-  // online BB/BG
+  // online BB/BG // past-future protection
   fV0AFlagsBB = 0; fV0CFlagsBB = 0; fV0AFlagsBG = 0; fV0CFlagsBG = 0;
+  Bool_t vir[21] = {0};
+
   for (Int_t i = 0; i < 64; i++)
   {
     fV0FlagBB[i] = vzero->GetBBFlag(i);
@@ -300,6 +304,39 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
       fV0FlagPFBB[i][bc] = vzero->GetPFBBFlag(i,bc);
       fV0FlagPFBG[i][bc] = vzero->GetPFBGFlag(i,bc);
     }
+  }
+
+  for (Int_t bc = 0; bc < 21; bc++)
+  {
+    UChar_t nBBA = 0;
+    UChar_t nBBC = 0;
+    UChar_t nBGA = 0;
+    UChar_t nBGC = 0;
+
+    if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
+    if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
+    if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
+    if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
+
+    vir[bc] |= nBBA>=fVIRBBAflags;
+    vir[bc] |= nBBC>=fVIRBBCflags;
+    vir[bc] |= nBGA>=fVIRBGAflags;
+    vir[bc] |= nBGC>=fVIRBGCflags;
+  }
+
+  Int_t fVIRBBAflags = 10;
+  Int_t fVIRBBCflags = 10;
+  Int_t fVIRBGAflags = 33;
+  Int_t fVIRBGCflags = 33;
+
+  Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
+  Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
+  for (Int_t bc = bcMin; bc <= bcMax; bc++)
+  {
+    if (bc==10) continue; // skip current bc
+    if (bc < 0) continue;
+    if (bc >20) continue;
+    if (vir[bc]) fV0PastFuturePileUp = kTRUE;
   }
 
   fV0ADecision = vzero->GetV0ADecision();

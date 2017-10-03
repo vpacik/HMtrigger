@@ -59,6 +59,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Float_t             fV0ATime; // average time in V0A
     Float_t             fV0CTime; // average time in V0C
     Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
+    Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
     Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
     Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
     Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
