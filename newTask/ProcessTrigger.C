@@ -20,11 +20,11 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 {
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/AnalysisResults.root";
-  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
+  // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
 
-  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
-  // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
+  // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
+  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
 
   TString sOutFile = "Processed_V0PFP.root";
 
@@ -62,6 +62,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
   TObjString*         fFiredTriggerInputs; // list of fired trigger inputs
   TBits*              fIR1 = 0x0; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
   TBits*              fIR2 = 0x0; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
+  Int_t               fNumContrSPD; // number of contributors to SPD vertex
   Int_t               fNumTracklets; // number of tracklets
   TBits*              fFiredChipMap = 0x0; // map of fired chips (at least one cluster)
   TBits*              fFiredChipMapFO = 0x0; // map of fired FastOr chips
@@ -69,10 +70,14 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
   Int_t               fTriggerMaskTOF[72]; // TOF trigger mask array
   Float_t             fV0ATotMult; // total multiplicity in V0A
   Float_t             fV0CTotMult; // total multiplicity in V0C
+  UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
+  UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
   Float_t             fV0AMult[32]; // multiplicity in V0A cells
   Float_t             fV0CMult[32];  // multiplicity in V0C cells
   Float_t             fV0ATime; // average time in V0A
   Float_t             fV0CTime; // average time in V0C
+  Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
+  Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
   Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
   Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
   Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
@@ -109,6 +114,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
   if(bCheckVHMSPDconsistency) eventTree->SetBranchAddress("fFiredTriggerInputs",&fFiredTriggerInputs);
   eventTree->SetBranchAddress("fIR1",&fIR1);
   eventTree->SetBranchAddress("fIR2",&fIR2);
+  eventTree->SetBranchAddress("fNumContrSPD",&fNumContrSPD);
   eventTree->SetBranchAddress("fNumTracklets",&fNumTracklets);
   eventTree->SetBranchAddress("fFiredChipMap",&fFiredChipMap);
   eventTree->SetBranchAddress("fFiredChipMapFO",&fFiredChipMapFO);
@@ -116,10 +122,14 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
   eventTree->SetBranchAddress("fTriggerMaskTOF",fTriggerMaskTOF);
   eventTree->SetBranchAddress("fV0ATotMult",&fV0ATotMult);
   eventTree->SetBranchAddress("fV0CTotMult",&fV0CTotMult);
+  eventTree->SetBranchAddress("fV0ATriggerCharge",&fV0ATriggerCharge);
+  eventTree->SetBranchAddress("fV0CTriggerCharge",&fV0CTriggerCharge);
   eventTree->SetBranchAddress("fV0ATime",&fV0ATime);
   eventTree->SetBranchAddress("fV0CTime",&fV0CTime);
   eventTree->SetBranchAddress("fV0AMult",fV0AMult);
   eventTree->SetBranchAddress("fV0CMult",fV0CMult);
+  eventTree->SetBranchAddress("fV0PastFuturePileUp",fV0PastFuturePileUp);
+  eventTree->SetBranchAddress("fV0PastFutureFilled",fV0PastFutureFilled);
   eventTree->SetBranchAddress("fV0ATriggerBB",fV0ATriggerBB);
   eventTree->SetBranchAddress("fV0ATriggerBG",fV0ATriggerBG);
   eventTree->SetBranchAddress("fV0CTriggerBG",fV0ATriggerBG);
@@ -355,7 +365,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
       h2EventCounter->Fill(sRunNumber,"VHMSH2",1);
 
       if(bV0PFPileup) continue;
-      
+
       h2EventCounter->Fill(sRunNumber,"VHMSH2 (pass. V0PFP)",1);
 
       hEventMultCVHMSH2->Fill(fNumTracklets);
