@@ -288,6 +288,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   }
 
   // online BB/BG // past-future protection
+  fV0PastFuturePileUp = kFALSE;
   fV0AFlagsBB = 0; fV0CFlagsBB = 0; fV0AFlagsBG = 0; fV0CFlagsBG = 0;
   Bool_t vir[21] = {0};
 

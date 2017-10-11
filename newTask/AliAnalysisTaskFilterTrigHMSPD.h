@@ -44,7 +44,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     TBits               fIR2; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
     Int_t               fNumContrSPD; // number of contributors to SPD PV
 
-
     Int_t               fNumTracklets; // number of tracklets
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
     TBits               fFiredChipMapFO; // map of fired FastOr chips
