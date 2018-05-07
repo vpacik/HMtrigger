@@ -86,6 +86,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
 
 
-  ClassDef(AliAnalysisTaskFilterTrigHMSPD,2);
+  ClassDef(AliAnalysisTaskFilterTrigHMSPD,3);
 };
 #endif

@@ -196,13 +196,11 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fhEventCounter->Fill("Interesting",1);
 
   fPhysSelDecision = fInputHandler->IsEventSelected();
-  if(fPhysSelDecision) fhEventCounter->Fill("PhysicsSelection",1);
   fPhysSelPassed = fPhysSelDecision ? kTRUE : kFALSE;
   // fIsINT7 = fPhysSelDecision& AliVEvent::kINT7;
   // fIsSH2 = fPhysSelDecision& AliVEvent::kHighMultSPD;
 
   fEventCutsPassed = fEventCuts.AcceptEvent(InputEvent());
-  if(fEventCutsPassed) fhEventCounter->Fill("EventCuts",1);
 
   fChunkFileName->SetString(((TTree*) GetInputData(0))->GetCurrentFile()->GetName());
   fEventInFile = fInputEvent->GetEventNumberInFile();
@@ -366,8 +364,14 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fVtxX   = vertex->GetX();
     fVtxY   = vertex->GetY();
     fVtxZ   = vertex->GetZ();
+    if(TMath::Abs(fVtxZ) > 10.0) { return; }
     fVtxTPC = TString(vertex->GetName()).CompareTo("PrimaryVertex") && TString(vertex->GetName()).CompareTo("SPDVertex");
+    fhEventCounter->Fill("PVz",1);
   }
+
+  if(fPhysSelDecision) { fhEventCounter->Fill("PhysicsSelection",1); }
+  if(fEventCutsPassed) { fhEventCounter->Fill("EventCuts",1); }
+
 
   // RefMult08 mimicing
   fNumTracksRefMult08 = fESDtrackCuts->GetReferenceMultiplicity(dynamic_cast<AliESDEvent*>(fInputEvent), AliESDtrackCuts::kTrackletsITSTPC, 0.8);
