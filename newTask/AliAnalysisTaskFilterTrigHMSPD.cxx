@@ -22,9 +22,10 @@ ClassImp(AliAnalysisTaskFilterTrigHMSPD)
 AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name) :
   AliAnalysisTaskSE(name),
   fEventCuts(),
-  fTracksPtNumBins(100),
-  fTracksPtLowEdge(0.),
-  fTracksPtUpEdge(100.),
+  fTracksPtNumBins(50),
+  fTracksPtLowEdge(0.0),
+  fTracksPtUpEdge(50.0),
+  fTrackEtaMax(0.8),
   fList(0x0),
   fhEventCounter(0x0),
   fTree(0x0),
@@ -360,7 +361,9 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   for(Int_t i(0); i < fNumTracks; i++)
   {
     track = (AliESDtrack*) fInputEvent->GetTrack(i);
-    if(!track) continue;
+    if(!track) { continue; }
+
+    if( TMath::Abs(track->Eta()) > fTrackEtaMax ) { continue; }
 
     index = GetPtBinIndex(track->Pt());
     if(index == -1) continue;

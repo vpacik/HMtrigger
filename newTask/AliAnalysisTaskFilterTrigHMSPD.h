@@ -19,8 +19,9 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
 
     Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
-    Float_t             fTracksPtLowEdge; // low edge of pt (binned) dist
-    Float_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
+    Double_t             fTracksPtLowEdge; // low edge of pt (binned) dist
+    Double_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
+    Double_t            fTrackEtaMax; // eta acceptance of charged tracks
 
     TList*              fList; //! output TList
     TH1D*               fhEventCounter; //! Event counter
