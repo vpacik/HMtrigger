@@ -18,6 +18,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
 
+    AliESDtrackCuts*     fESDtrackCuts;//!
     Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
     Double_t             fTracksPtLowEdge; // low edge of pt (binned) dist
     Double_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
@@ -46,6 +47,8 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Int_t               fNumContrSPD; // number of contributors to SPD PV
 
     Int_t               fNumTracklets; // number of tracklets
+    Int_t               fNumTracksRefMult08; // number of tracks in midrapidity |eta|<0.8 ala RefMult08 multiplicity estimator
+    Int_t               fNumTracksMultKatarina; // number of tracks in |eta|< 0.8 and 0.2 < pt < 3 GeV/c (ala Katarina Gajdosova expect for FB selection)
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
     TBits               fFiredChipMapFO; // map of fired FastOr chips
     Int_t               fNumITSCls[6]; // number of ITS clusters per layer
