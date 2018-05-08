@@ -8,6 +8,7 @@
 #include "TPad.h"
 #include "TLatex.h"
 #include "TLine.h"
+#include "TSystem.h"
 
 
 void AddArrToHist(TArrayD* arr, TH1D* hist);
@@ -16,15 +17,16 @@ TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
 Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 
-void ProcessTrigger(Int_t iNumEventsToProcess = -1)
+void ProcessTrigger(Int_t iNumEventsToProcess = 10000)
 {
   // parameters
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/16k/AnalysisResults_BK.root";
   // const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/AnalysisResults.root";
-  const char* sInputFile = "/Users/vpacik/NBI/triggerHMstudies/newTask/AnalysisResults.root";
+  // const char* sInputFile = "/Users/vpacik/NBI/HMtrigger/newTask/AnalysisResults.root";
+  const char* sInputFile = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17m-itsOK-3/old_AnalysisResults.root";
 
   // TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/running/15l-2/";
-  TString sOutputPath = "/Users/vpacik/NBI/triggerHMstudies/newTask/";
+  TString sOutputPath = "/Users/vpacik/NBI/ALICE/HMtrigger/out/17m/";
 
   TString sOutFile = "Processed_V0PFP.root";
 
@@ -477,6 +479,7 @@ void ProcessTrigger(Int_t iNumEventsToProcess = -1)
 
 
   // Writing to output file
+  gSystem->mkdir(Form("%s",sOutputPath.Data()));
   TFile* fOutputFile = new TFile(Form("%s%s",sOutputPath.Data(),sOutFile.Data()),"RECREATE");
   if(fOutputFile->IsOpen())
   {
