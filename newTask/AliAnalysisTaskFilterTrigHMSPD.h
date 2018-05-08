@@ -3,7 +3,7 @@
 
 #include "AliAnalysisTaskSE.h"
 #include "AliEventCuts.h"
-
+#include "AliESDtrackCuts.h"
 
 class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
   public:
@@ -18,7 +18,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
 
-    AliESDtrackCuts*     fESDtrackCuts;//!
+    AliESDtrackCuts*     fESDtrackCuts; //!
     Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
     Double_t             fTracksPtLowEdge; // low edge of pt (binned) dist
     Double_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
@@ -86,6 +86,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
 
 
-  ClassDef(AliAnalysisTaskFilterTrigHMSPD,3);
+  ClassDef(AliAnalysisTaskFilterTrigHMSPD,4);
 };
 #endif
