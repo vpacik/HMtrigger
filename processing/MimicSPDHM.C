@@ -6,297 +6,284 @@
 #include "TH2.h"
 #include "TCanvas.h"
 #include "TPad.h"
+#include "TLegend.h"
 #include "TLatex.h"
 #include "TLine.h"
 #include "TSystem.h"
+#include "TStyle.h"
+#include "TColor.h"
 
-TTree* eventTree = 0x0; // tree
-// TTree variables (globals)
-TObjString*         fClassesFired = 0x0; // list of fired trigger classes
-UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
-Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
-Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
-TObjString*         fChunkFileName = 0x0; // current file name
-Int_t               fEventInFile; // current event number in the file
-Int_t               fRunNumber; // run number
-UInt_t              fPeriod; // run period
-UInt_t              fOrbit; // orbit number
-UShort_t            fBC; // bunch cross (BX) number
-UInt_t              fL0inputs; // L0 trigger inputs
-UInt_t              fL1inputs; // L1 trigger inputs
-TObjString*         fFiredTriggerInputs; // list of fired trigger inputs
-TBits*              fIR1 = 0x0; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
-TBits*              fIR2 = 0x0; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
-Int_t               fNumContrSPD; // number of contributors to SPD vertex
-Int_t               fNumTracklets; // number of tracklets
-Int_t               fNumTracks; // number of tracks
-Int_t               fNumTracksRefMult08; //
-Int_t               fNumTracksMultKatarina; //
-TBits*              fFiredChipMap = 0x0; // map of fired chips (at least one cluster)
-TBits*              fFiredChipMapFO = 0x0; // map of fired FastOr chips
-Int_t               fNumITSCls[6]; // number of ITS clusters per layer
-Int_t               fTriggerMaskTOF[72]; // TOF trigger mask array
-Float_t             fV0ATotMult; // total multiplicity in V0A
-Float_t             fV0CTotMult; // total multiplicity in V0C
-UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
-UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
-Float_t             fV0AMult[32]; // multiplicity in V0A cells
-Float_t             fV0CMult[32];  // multiplicity in V0C cells
-Float_t             fV0ATime; // average time in V0A
-Float_t             fV0CTime; // average time in V0C
-Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
-Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
-Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
-Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
-Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
-Bool_t              fV0CTriggerBG[32]; // offline beam-gas flag in V0C cells
-UInt_t              fV0AFlagsBB; // Number of total online beam-beam flags in V0A
-UInt_t              fV0CFlagsBB; // Number of total online beam-beam flags in V0C
-UInt_t              fV0AFlagsBG; // Number of total online beam-gas flags in V0A
-UInt_t              fV0CFlagsBG; // Number of total online beam-gas flags in V0C
-Bool_t              fV0FlagBB[64]; // online beam-beam flag in V0 (V0C 0-31, V0A 32-63) cells
-Bool_t              fV0FlagBG[64]; // online beam-gas flag in V0 (V0C 0-31, V0A 32-63) cells
-Bool_t              fV0FlagPFBB[64][21]; // beam-beam flag for V0 cells and clocks
-Bool_t              fV0FlagPFBG[64][21]; // beam-gas flag for V0 cells and clocks
-Char_t              fV0ADecision; // final V0A decision
-Char_t              fV0CDecision;  // final V0C decision
-Double_t            fVtxX; // primary vertex x-coordinate
-Double_t            fVtxY; // primary vertex y-coordinate
-Double_t            fVtxZ; // primary vertex z-coordinate
-Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
-TArrayD*            fTracksPt = 0x0; // binned tracks pt
 
 const Int_t iNumTypes = 5;
-TString sTypeLabels[iNumTypes] = {"ALL", "MB", "SPDHM", "MB_PhysSel", "SPDHM_PhysSel"};
 enum eEventType { kAll = 0, kCINT7, kCVHMSH2, kCINT7_PhysSel, kCVHMSH2_PhysSel};
+TString sTypeLabels[iNumTypes] = {"ALL", "CINT7", "CVHMSH2", "CINT7_PhysSel", "CVHMSH2_PhysSel"};
+
+const Int_t iNumMult = 4;
+enum eMult { kNtrklets=0, kNtrks, kNtrks08pt, kRefMult08};
+TString sMultLabels[iNumMult] = {"Ntrklets", "Ntrks", "Ntrks08pt", "RefMult08"};
+
+Int_t iCutOFonline[] = {70,75,80,85,90,95,100,105,110,115,120};
+Double_t dCutOFonline[] = {70,75,80,85,90,95,100,105,110,115,120};
+const Int_t iNumCutOFonline = sizeof(iCutOFonline)/sizeof(iCutOFonline[0]);
+Color_t colorsCutOFonline[] = {kBlue+2, kRed, kGreen+2, kOrange+2, kMagenta+2, kCyan+2, kRed+1};
 
 TList* listOut[iNumTypes];
-
 TH1D* hEventCounter;
+
 TH1D* hDistFOonline[iNumTypes];
 TH1D* hDistFOoffline[iNumTypes];
 
-// 2D mult correlations
-TH2D* h2_FOonline_Ntrklets[iNumTypes];
-TH2D* h2_FOonline_Ntrks[iNumTypes];
-TH2D* h2_FOonline_Ntrks08pt[iNumTypes];
-TH2D* h2_FOonline_RefMult08[iNumTypes];
+TH1D* hDist[iNumMult][iNumTypes];
+TH2D* h2_FOonline[iNumMult][iNumTypes];
 
-Int_t iNumFOonline = 0;
-Int_t iNumFOoffline = 0;
+void SetCustomPalette();
+void LoadHistos(TFile* file);
+TH1D* ProjectDist(TH2D* hist, Int_t iCut);
+TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
+Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
-
-
-Bool_t CheckTriggerConsistency();
-void CreateHistos();
-void FillCommonHistos(eEventType type);
-Bool_t LoadTTreeVars();
 
 void MimicSPDHM()
 {
-  Int_t iNumEventsToProcess = 1000000;
   TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
-  TString sInFileName = "AnalysisResults.root";
-  TString sOutFileName = "Skimmed.root";
+  TString sInFileName = "Skimmed.root";
 
   // ===============================================================================
-
-  CreateHistos();
-
   // openning input & output file
   TString sInputFile = sPath + sInFileName;
-  TString sOutputFile = sPath + sOutFileName;
-
-  TFile* fOutputFile = new TFile(sOutputFile.Data(),"RECREATE");
-  if(!fOutputFile->IsOpen()) { printf(" ERROR: fOutputFile open!\n"); return; }
-
   TFile* fInputFile = new TFile(sInputFile.Data(),"READ");
   if(!fInputFile->IsOpen()) { printf(" ERROR: fInputFile not open!\n"); return; }
 
-  // loading TTree variables
-  fInputFile->cd("FilterTrig");
+  LoadHistos(fInputFile);
+  SetCustomPalette();
 
-  TList* histos = (TList*) gDirectory->Get("histos");
-  if (!histos) { printf(" ERROR: TList with histos is not there! \n"); }
+  Int_t iMult = kRefMult08;
+  Int_t iType = kCVHMSH2_PhysSel;
 
-  // TH1F* fhEventCounter = (TH1F*) histos->FindObject("fhEventCounter");
-  // if(fhEventCounter) { fhEventCounter->Draw(); } else { printf(" ERROR: 'fhEventCounter' is not there! \n"); }
 
-  eventTree = (TTree*) gDirectory->Get("events");
-  if (!eventTree) { printf(" ERROR: Tree is not there! \n"); return; }
+  TLegend* leg = new TLegend(0.6,0.4,0.88,0.88);
+  leg->SetFillColorAlpha(0.0,0.0);
+  leg->SetBorderSize(0);
+  leg->SetHeader("FO online thrs.");
+  leg->SetTextSize(0.04);
 
-  if(!LoadTTreeVars()) { return; }
+  // slicing distribution wrt. #FOs
+  TH1D* hDistMult[iNumMult][iNumTypes][iNumCutOFonline];
+  TH1D* hEff[iNumMult][iNumTypes][iNumCutOFonline];
 
-  // looping over entries
-  Int_t numEvents = eventTree->GetEntriesFast();
-  printf("Found %d events\nTo be processed: %d\n",numEvents, (iNumEventsToProcess ? iNumEventsToProcess : numEvents) );
-  if(iNumEventsToProcess > 0 && iNumEventsToProcess < numEvents) { numEvents = iNumEventsToProcess; }
+  TH1D* hDistMult_CINT7 = ProjectDist(h2_FOonline[iMult][kCINT7_PhysSel],-1);
+  hDistMult_CINT7->SetStats(0);
+  hDistMult_CINT7->SetLineColor(kBlack);
+  leg->AddEntry(hDistMult_CINT7,"CINT7","l");
 
-  for (Int_t i(0); i < numEvents; i++)
+
+  Int_t nPnt  = iNumCutOFonline;
+  Int_t nnCol = gStyle->GetNumberOfColors();
+
+  for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
   {
-    if( (i % 100000) == 0) printf("=== Procesed %d out of %d events === \n",i,numEvents);
-    eventTree->GetEvent(i);
-    hEventCounter->Fill("Input",1);
+    Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
+    Int_t iColor = gStyle->GetColorPalette(idx);
 
-    // trigger part
-    Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
-    Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
-    Bool_t bIsConsist = CheckTriggerConsistency();
-
-    // number of online/oflline FAST-ORs
-    iNumFOonline = fFiredChipMapFO->CountBits(400);
-    iNumFOoffline = fFiredChipMap->CountBits(400);
-
-    // filling common histos
-    FillCommonHistos(kAll);
-    if(bIsCINT7) { FillCommonHistos(kCINT7); }
-    if(fPhysSelPassed && bIsCINT7)  { FillCommonHistos(kCINT7_PhysSel); }
-    if(bIsCVHMSH2) { FillCommonHistos(kCVHMSH2); }
-    if(fPhysSelPassed && kCVHMSH2_PhysSel)  { FillCommonHistos(kCVHMSH2_PhysSel); }
-
-    // skipping events not marker as MB nor SPDHM (because we need only OFO > 70)
-    if(!bIsCINT7) { continue; }
-    if(!bIsCVHMSH2) { continue; }
+    hDistMult[iMult][iType][iCut] = ProjectDist(h2_FOonline[iMult][iType],iCutOFonline[iCut]);
+    hEff[iMult][iType][iCut] = GetEfficiency(hDistMult[iMult][iType][iCut],hDistMult_CINT7);
 
 
+    hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
+    hEff[iMult][iType][iCut]->SetLineColor(iColor);
+
+    leg->AddEntry(hDistMult[iMult][iType][iCut],Form("%d+",iCutOFonline[iCut]),"l");
   }
 
-  fOutputFile->cd();
-  for(Int_t iType(0); iType < iNumTypes; ++iType) { listOut[iType]->Write(Form("list_%s",sTypeLabels[iType].Data()),TObject::kSingleKey); }
+  // rejection factors
+  TH1D* hRejectionFactor_PhysSel = new TH1D("hRejectionFactor_PhysSel","hRejectionFactor_PhysSel",iNumCutOFonline-1,dCutOFonline);
+  Int_t iNumEvents_CINT7_PhysSel = hDistFOonline[kCINT7_PhysSel]->GetEntries();
+  Int_t iNumEvents_CVHSH2_PhysSel[iNumCutOFonline];
+  Double_t dRejectionFactor[iNumCutOFonline];
+
+  printf("=== Rejection factors =====");
+  printf("CINT7 %d \n",iNumEvents_CINT7_PhysSel);
+  for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
+  {
+    iNumEvents_CVHSH2_PhysSel[iCut] = hDistMult[iMult][iType][iCut]->GetEntries();
+    dRejectionFactor[iCut] = ((Double_t) iNumEvents_CVHSH2_PhysSel[iCut]) / iNumEvents_CINT7_PhysSel;
+    hRejectionFactor_PhysSel->SetBinContent(iCut+1, dRejectionFactor[iCut]);
+    printf("%d: %d | MB %d | rejection %f \n",iCutOFonline[iCut], iNumEvents_CVHSH2_PhysSel[iCut], iNumEvents_CINT7_PhysSel, dRejectionFactor[iCut]);
+  }
+
+  TLine* line = new TLine();
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2.0);
+
+  TCanvas* canEff = new TCanvas("canEff","canEff",1500,600);
+  canEff->Divide(3,1);
+  canEff->cd(1);
+  gPad->SetLogy();
+  hDistMult_CINT7->Draw();
+  leg->Draw();
+  for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut) { hDistMult[iMult][iType][iCut]->Draw("same"); }
+  canEff->cd(2);
+  TH1* frame_canEff_2 = (TH1*) gPad->DrawFrame(0,0.0,100,1.1);
+  frame_canEff_2->SetTitle(Form("Efficiency: SPDHM / CINT7 (after Physics Selection); %s; Eff",sMultLabels[iMult].Data()));
+  for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut) { hEff[iMult][iType][iCut]->Draw("same"); }
+  line->DrawLine(0,0.95,100,0.95);
+  canEff->cd(3);
+  gPad->SetLogy();
+  TH1* frame_canEff_3 = (TH1*) gPad->DrawFrame(iCutOFonline[0],1e-4,iCutOFonline[iNumCutOFonline-1],0.5);
+  frame_canEff_3->SetTitle(Form("Rejection factor: %s (after Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
+  hRejectionFactor_PhysSel->SetMarkerStyle(kFullCircle);
+  hRejectionFactor_PhysSel->Draw("same p");
+
+
 
   return;
 }
 // =====================================================================================================================
-Bool_t CheckTriggerConsistency()
+TH1D* ProjectDist(TH2D* hist, Int_t iCut)
 {
-  Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
-  Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
+  if(!hist) { printf("ERROR-ProjectDist: no hist \n"); return 0x0; }
 
-  Bool_t bIs0SH2 = fFiredTriggerInputs->String().Contains("0SH2");
-  Bool_t bIs0VHM = fFiredTriggerInputs->String().Contains("0VHM");
+  // TH2D* hist_temp = (TH1D*) hist->Clone("_proj");
+  // if(!hist_temp) { printf("ERROR-ProjectDist: not cloned \n"); return 0x0; }
 
+  // hist_temp->GetXaxis()
 
-  Bool_t bConsistent = kFALSE;
-  if(bIsCVHMSH2 && bIs0VHM && bIs0SH2) { bConsistent = kTRUE; }
+  Int_t iLowBinIndex = hist->GetXaxis()->FindBin(iCut);
 
-  if(bIsCVHMSH2 && !bConsistent)
-  {
-    printf("(CVHMSH2 %d | CINT7 %d | 0SH2 %d | 0VHM %d) %d \n",bIsCVHMSH2,bIsCINT7,bIs0SH2,bIs0VHM,bConsistent);
-  }
+  TH1D* proj = (TH1D*) hist->ProjectionY(Form("%s_OFO%d",hist->GetName(), iCut), iLowBinIndex, -1);
+  if(!proj) { printf("ERROR-ProjectDist: not projected \n"); return 0x0; }
 
-  if(bIsCINT7) { hEventCounter->Fill("CINT7-B",1); }
-  if(bIsCVHMSH2) { hEventCounter->Fill("CVHMSH2-B",1); }
-  if(bIs0VHM) { hEventCounter->Fill("0VHM",1); }
-  if(bIs0SH2) { hEventCounter->Fill("0SH2",1); }
-  if(bIs0SH2 && bIs0VHM) { hEventCounter->Fill("0SH2 && 0VHM",1); }
-  if(bConsistent) { hEventCounter->Fill("Consistent",1); }
-
-  return bConsistent;
+  return proj;
 }
 // =====================================================================================================================
-void CreateHistos()
+TH1D* GetEfficiency(TH1D* trigger, TH1D* mb)
 {
-  hEventCounter = new TH1D("hEventCounter", "hEventCounter", 1,0,1);
+  if(!trigger || !mb) { printf("ERROR: histos does not exists!\n"); return 0x0; }
+
+  TH1D* hEfficiency = (TH1D*) trigger->Clone("hEfficiency");
+  hEfficiency->Divide(trigger,mb,1.,1.);
+
+  return hEfficiency;
+}
+// =====================================================================================================================
+Double_t GetTurnOn(TH1D* mult, Int_t threshold)
+{
+  if(!mult) { printf("ERROR: Multiplicity histo does not exists!\n"); return -1.; }
+  threshold++; // histo bin number offset : starting with 1 instead of 0
+
+  Double_t dEntries = mult->GetEntries();
+  Double_t dInt = mult->Integral(threshold,mult->GetNbinsX()+1);
+  // printf("Histo: Entries %g | ntegral %g | single bin (thrs) %g \n",mult->GetEntries(), mult->Integral(threshold,mult->GetNbinsX()+1), mult->Integral(threshold,threshold));
+  return dInt / dEntries;
+}
+// =====================================================================================================================
+void LoadHistos(TFile* file)
+{
+  if(!file) { printf("ERROR-LoadHistos: no file!\n"); return; }
+
+  // file->ls();
+
+  // hEventCounter = new TH1D("hEventCounter", "hEventCounter", 1,0,1);
 
   for(Int_t iType(0); iType < iNumTypes; ++iType)
   {
     TString sLabel = sTypeLabels[iType];
 
-    listOut[iType] = new TList();
+    listOut[iType] = (TList*) file->Get(Form("list_%s",sLabel.Data()));
     TList* list = listOut[iType];
+    if(!list) { printf("ERROR-LoadHistos: no list '%s' loaded!\n",sLabel.Data()); return; }
+    // list->ls();
 
-    // Distributions
-    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 100,0,1000);
-    list->Add(hDistFOonline[iType]);
-    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 100,0,1000);
-    list->Add(hDistFOoffline[iType]);
+    hDistFOonline[iType] = (TH1D*) list->FindObject(Form("hDistFOonline_%s",sLabel.Data()));
+    if(!hDistFOonline[iType]) { printf("ERROR-LoadHistos: no histo 'hDistFOonline_%s'\n",sLabel.Data()); return; }
+    hDistFOoffline[iType] = (TH1D*) list->FindObject(Form("hDistFOoffline_%s",sLabel.Data()));
+    if(!hDistFOoffline[iType]) { printf("ERROR-LoadHistos: no histo 'hDistFOoffline_%s'\n",sLabel.Data()); return; }
 
-    // 2D mult correlations
-    h2_FOonline_Ntrklets[iType] = new TH2D(Form("h2_FOonline_Ntrklets_%s",sLabel.Data()), Form("h2_FOonline_Ntrklets_%s; N_{tracklets}; FO online",sLabel.Data()), 100,0,1000, 100,0,1000);
-    list->Add(h2_FOonline_Ntrklets[iType]);
-    h2_FOonline_Ntrks[iType] = new TH2D(Form("h2_FOonline_Ntrks_%s",sLabel.Data()), Form("h2_FOonline_Ntrks_%s; N_{tracks}; FO online",sLabel.Data()), 100,0,1000, 100,0,1000);
-    list->Add(h2_FOonline_Ntrks[iType]);
-    h2_FOonline_Ntrks08pt[iType] = new TH2D(Form("h2_FOonline_Ntrks08pt_%s",sLabel.Data()), Form("h2_FOonline_RefMult08_%s; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c}); FO online",sLabel.Data()), 100,0,1000, 100,0,1000);
-    list->Add(h2_FOonline_Ntrks08pt[iType]);
-    h2_FOonline_RefMult08[iType] = new TH2D(Form("h2_FOonline_RefMult08_%s",sLabel.Data()), Form("h2_FOonline_RefMult08_%s; RefMult08; FO online",sLabel.Data()), 100,0,1000, 100,0,1000);
-    list->Add(h2_FOonline_RefMult08[iType]);
+
+    for(Int_t iMult(0); iMult < iNumMult; ++iMult)
+    {
+      TString sMult = sMultLabels[iMult];
+
+      hDist[iMult][iType] = (TH1D*) list->FindObject(Form("hDist%s_%s",sMult.Data(),sLabel.Data()));
+      if(!hDist[iMult][iType]) { printf("ERROR-LoadHistos: no histo 'hDist%s_%s'\n",sMult.Data(), sLabel.Data()); return; }
+
+      h2_FOonline[iMult][iType] = (TH2D*) list->FindObject(Form("h2_FOonline_%s_%s",sMult.Data(), sLabel.Data()));
+      if(!h2_FOonline[iMult][iType]) { printf("ERROR-LoadHistos: no histo 'h2_FOonline_%s_%s'\n",sMult.Data(), sLabel.Data()); return; }
+
+
+      // // Distributions
+      // hDistNtrklets[iType] = (TH1D*) list->FindObject(Form("hDistNtrklets_%s",sLabel.Data()));
+      // if(!hDistNtrklets[iType]) { printf("ERROR-LoadHistos: no histo 'hDistNtrklets_%s'\n",sLabel.Data()); return; }
+      // hDistNtrks[iType] = (TH1D*) list->FindObject(Form("hDistNtrks_%s",sLabel.Data()));
+      // if(!hDistNtrks[iType]) { printf("ERROR-LoadHistos: no histo 'hDistNtrks_%s'\n",sLabel.Data()); return; }
+      // hDistNtrks08pt[iType] = (TH1D*) list->FindObject(Form("hDistNtrks08pt_%s",sLabel.Data()));
+      // if(!hDistNtrks08pt[iType]) { printf("ERROR-LoadHistos: no histo 'hDistNtrks08pt_%s'\n",sLabel.Data()); return; }
+      // hDistRefMult08[iType] = (TH1D*) list->FindObject(Form("hDistRefMult08_%s",sLabel.Data()));
+      // if(!hDistRefMult08[iType]) { printf("ERROR-LoadHistos: no histo 'hDistRefMult08_%s'\n",sLabel.Data()); return; }
+
+      // 2D mult correlations
+      // h2_FOonline_Ntrklets[iType] = (TH2D*) list->FindObject(Form("h2_FOonline_Ntrklets_%s",sLabel.Data()));
+      // if(!h2_FOonline_Ntrklets[iType]) { printf("ERROR-LoadHistos: no histo 'h2_FOonline_Ntrklets_%s'\n",sLabel.Data()); return; }
+      // h2_FOonline_Ntrks[iType] = (TH2D*) list->FindObject(Form("h2_FOonline_Ntrks_%s",sLabel.Data()));
+      // if(!h2_FOonline_Ntrks[iType]) { printf("ERROR-LoadHistos: no histo 'h2_FOonline_Ntrks_%s'\n",sLabel.Data()); return; }
+      // h2_FOonline_Ntrks08pt[iType] = (TH2D*) list->FindObject(Form("h2_FOonline_Ntrks08pt_%s",sLabel.Data()));
+      // if(!h2_FOonline_Ntrks08pt[iType]) { printf("ERROR-LoadHistos: no histo 'h2_FOonline_Ntrks08pt_%s'\n",sLabel.Data()); return; }
+      // h2_FOonline_RefMult08[iType] = (TH2D*) list->FindObject(Form("h2_FOonline_RefMult08_%s",sLabel.Data()));
+      // if(!h2_FOonline_RefMult08[iType]) { printf("ERROR-LoadHistos: no histo 'h2_FOonline_RefMult08_%s'\n",sLabel.Data()); return; }
+    }
   }
 
-  return;
-}
-// =====================================================================================================================
-void FillCommonHistos(eEventType iType)
-{
-  hDistFOonline[iType]->Fill(iNumFOonline);
-  hDistFOoffline[iType]->Fill(iNumFOoffline);
-
-  // 2D mult correlations
-  h2_FOonline_Ntrklets[iType]->Fill(iNumFOonline,fNumTracklets);
-  h2_FOonline_Ntrks[iType]->Fill(iNumFOonline,fNumTracks);
-  h2_FOonline_Ntrks08pt[iType]->Fill(iNumFOonline,fNumTracksMultKatarina);
-  h2_FOonline_RefMult08[iType]->Fill(iNumFOonline,fNumTracksRefMult08);
+  printf("INFO-LoadHistos : Loading successful\n");
 
   return;
 }
-// =====================================================================================================================
-Bool_t LoadTTreeVars()
+// ==================================================================================================================
+void SetCustomPalette()
 {
-  if(!eventTree) { printf(" ERROR-LoadTTreeVars: no eventTree\n"); return kFALSE; }
+  Double_t stops[9] = { 0.0000, 0.1250, 0.2500, 0.3750, 0.5000,	0.6250, 0.7500, 0.8750, 1.0000};
 
-  // list of branches in TTree
-  eventTree->SetBranchAddress("fClassesFired",&fClassesFired);
-  eventTree->SetBranchAddress("fPhysSelDecision",&fPhysSelDecision);
-  eventTree->SetBranchAddress("fPhysSelPassed",&fPhysSelPassed);
-  eventTree->SetBranchAddress("fEventCutsPassed",&fEventCutsPassed);
-  eventTree->SetBranchAddress("fChunkFileName",&fChunkFileName);
-  eventTree->SetBranchAddress("fEventInFile",&fEventInFile);
-  eventTree->SetBranchAddress("fRunNumber",&fRunNumber);
-  eventTree->SetBranchAddress("fPeriod",&fPeriod);
-  eventTree->SetBranchAddress("fOrbit",&fOrbit);
-  eventTree->SetBranchAddress("fBC",&fBC);
-  eventTree->SetBranchAddress("fL0inputs",&fL0inputs);
-  eventTree->SetBranchAddress("fL1inputs",&fL1inputs);
-  eventTree->SetBranchAddress("fFiredTriggerInputs",&fFiredTriggerInputs);
-  eventTree->SetBranchAddress("fIR1",&fIR1);
-  eventTree->SetBranchAddress("fIR2",&fIR2);
-  eventTree->SetBranchAddress("fNumContrSPD",&fNumContrSPD);
-  eventTree->SetBranchAddress("fNumTracklets",&fNumTracklets);
-  eventTree->SetBranchAddress("fNumTracksRefMult08",&fNumTracksRefMult08);
-  eventTree->SetBranchAddress("fNumTracksMultKatarina",&fNumTracksMultKatarina);
-  eventTree->SetBranchAddress("fFiredChipMap",&fFiredChipMap);
-  eventTree->SetBranchAddress("fFiredChipMapFO",&fFiredChipMapFO);
-  eventTree->SetBranchAddress("fNumITSCls",fNumITSCls);
-  eventTree->SetBranchAddress("fTriggerMaskTOF",fTriggerMaskTOF);
-  eventTree->SetBranchAddress("fV0ATotMult",&fV0ATotMult);
-  eventTree->SetBranchAddress("fV0CTotMult",&fV0CTotMult);
-  eventTree->SetBranchAddress("fV0ATriggerCharge",&fV0ATriggerCharge);
-  eventTree->SetBranchAddress("fV0CTriggerCharge",&fV0CTriggerCharge);
-  eventTree->SetBranchAddress("fV0ATime",&fV0ATime);
-  eventTree->SetBranchAddress("fV0CTime",&fV0CTime);
-  eventTree->SetBranchAddress("fV0AMult",fV0AMult);
-  eventTree->SetBranchAddress("fV0CMult",fV0CMult);
-  eventTree->SetBranchAddress("fV0PastFuturePileUp",&fV0PastFuturePileUp);
-  eventTree->SetBranchAddress("fV0PastFutureFilled",&fV0PastFutureFilled);
-  eventTree->SetBranchAddress("fV0ATriggerBB",fV0ATriggerBB);
-  eventTree->SetBranchAddress("fV0ATriggerBG",fV0ATriggerBG);
-  eventTree->SetBranchAddress("fV0CTriggerBG",fV0ATriggerBG);
-  eventTree->SetBranchAddress("fV0CTriggerBB",fV0ATriggerBB);
-  eventTree->SetBranchAddress("fV0AFlagsBB",&fV0AFlagsBB);
-  eventTree->SetBranchAddress("fV0CFlagsBB",&fV0CFlagsBB);
-  eventTree->SetBranchAddress("fV0AFlagsBG",&fV0AFlagsBG);
-  eventTree->SetBranchAddress("fV0CFlagsBG",&fV0CFlagsBG);
-  eventTree->SetBranchAddress("fV0FlagBB",fV0FlagBB);
-  eventTree->SetBranchAddress("fV0FlagBG",fV0FlagBG);
-  eventTree->SetBranchAddress("fV0FlagPFBB",fV0FlagPFBB);
-  eventTree->SetBranchAddress("fV0FlagPFBG",fV0FlagPFBG);
-  eventTree->SetBranchAddress("fV0ADecision",&fV0ADecision);
-  eventTree->SetBranchAddress("fV0CDecision",&fV0CDecision);
-  eventTree->SetBranchAddress("fVtxX",&fVtxX);
-  eventTree->SetBranchAddress("fVtxY",&fVtxY);
-  eventTree->SetBranchAddress("fVtxZ",&fVtxZ);
-  eventTree->SetBranchAddress("fVtxTPC",&fVtxTPC);
-  eventTree->SetBranchAddress("fNumTracks",&fNumTracks);
-  eventTree->SetBranchAddress("fTracksPt",&fTracksPt);
 
-  return kTRUE;
+  // Rain Bow
+  // case 55:
+  Double_t red[9]   = {  0./255.,   5./255.,  15./255.,  35./255., 102./255., 196./255., 208./255., 199./255., 110./255.};
+  Double_t green[9] = {  0./255.,  48./255., 124./255., 192./255., 206./255., 226./255.,  97./255.,  16./255.,   0./255.};
+  Double_t blue[9]  = { 99./255., 142./255., 198./255., 201./255.,  90./255.,  22./255.,  13./255.,   8./255.,   2./255.};
+
+  // Bird
+  //case 57:
+  // Double_t red[9]   = { 0.2082, 0.0592, 0.0780, 0.0232, 0.1802, 0.5301, 0.8186, 0.9956, 0.9764};
+  // Double_t green[9] = { 0.1664, 0.3599, 0.5041, 0.6419, 0.7178, 0.7492, 0.7328, 0.7862, 0.9832};
+  // Double_t blue[9]  = { 0.5293, 0.8684, 0.8385, 0.7914, 0.6425, 0.4662, 0.3499, 0.1968, 0.0539};
+
+  // Blue Green Yellow
+  //case 71:
+  // Double_t red[9]   = { 22./255., 19./255.,  19./255.,  25./255.,  35./255.,  53./255.,  88./255., 139./255., 210./255.};
+  // Double_t green[9] = {  0./255., 32./255.,  69./255., 108./255., 135./255., 159./255., 183./255., 198./255., 215./255.};
+  // Double_t blue[9]  = { 77./255., 96./255., 110./255., 116./255., 110./255., 100./255.,  90./255.,  78./255.,  70./255.};
+
+  // Solar
+  // case 100:
+  // Double_t red[9]   = { 99./255., 116./255., 154./255., 174./255., 200./255., 196./255., 201./255., 201./255., 230./255.};
+  // Double_t green[9] = {  0./255.,   0./255.,   8./255.,  32./255.,  58./255.,  83./255., 119./255., 136./255., 173./255.};
+  // Double_t blue[9]  = {  5./255.,   6./255.,   7./255.,   9./255.,   9./255.,  14./255.,  17./255.,  19./255.,  24./255.};
+
+  // Viridis
+  // case 112:
+  // Double_t red[9]   = { 26./255., 51./255.,  43./255.,  33./255.,  28./255.,  35./255.,  74./255., 144./255., 246./255.};
+  // Double_t green[9] = {  9./255., 24./255.,  55./255.,  87./255., 118./255., 150./255., 180./255., 200./255., 222./255.};
+  // Double_t blue[9]  = { 30./255., 96./255., 112./255., 114./255., 112./255., 101./255.,  72./255.,  35./255.,   0./255.};
+
+  // Cividis
+  // case 113:
+  // Double_t red[9]   = {  0./255.,   5./255.,  65./255.,  97./255., 124./255., 156./255., 189./255., 224./255., 255./255.};
+  // Double_t green[9] = { 32./255.,  54./255.,  77./255., 100./255., 123./255., 148./255., 175./255., 203./255., 234./255.};
+  // Double_t blue[9]  = { 77./255., 110./255., 107./255., 111./255., 120./255., 119./255., 111./255.,  94./255.,  70./255.};
+
+  Int_t pal = TColor::CreateGradientColorTable(9, stops, red, green, blue, 255, 1);
+  const Int_t nCol = 255;
+  Int_t colors[nCol];
+  for (int i=0; i<nCol; i++) colors[i] =pal+i;
+
+  gStyle->SetPalette(nCol,colors);
 }
+// ==================================================================================================================
