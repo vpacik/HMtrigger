@@ -51,19 +51,23 @@ void MimicSPDHM()
   TString sInFileName = "Skimmed.root";
 
   // ===============================================================================
+  TString sOutputPath = sPath + "/out/";
+  gSystem->mkdir(sOutputPath.Data(),1);
+
   // openning input & output file
   TString sInputFile = sPath + sInFileName;
   TFile* fInputFile = new TFile(sInputFile.Data(),"READ");
   if(!fInputFile->IsOpen()) { printf(" ERROR: fInputFile not open!\n"); return; }
 
+
   LoadHistos(fInputFile);
   SetCustomPalette();
 
+  Int_t iType = kCVHMSH2_PhysSel;
   // Int_t iMult = kNtrklets;
   // Int_t iMult = kRefMult08;
   for(Int_t iMult(0); iMult < iNumMult; ++iMult)
   {
-    Int_t iType = kCVHMSH2_PhysSel;
 
     TLegend* leg = new TLegend(0.6,0.4,0.88,0.88);
     leg->SetFillColorAlpha(0.0,0.0);
@@ -140,16 +144,19 @@ void MimicSPDHM()
     gPad->SetGridx();
     for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut) { hEff[iMult][iType][iCut]->Draw("same"); }
     line->DrawLine(0,0.95,140,0.95);
-    canEff->cd(3);
+
+    canEff->SaveAs(Form("%s/eff_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
+
+
+    TCanvas* canReject = new TCanvas("canReject","canRejection",800,800);
+    canReject->cd(1);
     gPad->SetLogy();
-    TH1* frame_canEff_3 = (TH1*) gPad->DrawFrame(iCutOFonline[0]-5,1e-4,iCutOFonline[iNumCutOFonline-1]+5,0.1);
+    TH1* frame_canReject_1 = (TH1*) gPad->DrawFrame(iCutOFonline[0]-5,1e-4,iCutOFonline[iNumCutOFonline-1]+5,0.1);
     gPad->SetGridy();
-    frame_canEff_3->SetTitle(Form("Rejection factor: %s (after Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
+    frame_canReject_1->SetTitle(Form("Rejection factor: %s (after Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
     // hRejectionFactor_PhysSel->Draw("same p");
     graph_RejectionFactor_PhysSel->Draw("same p");
-
-    canEff->SaveAs(Form("%s/canvas_%s.pdf",sPath.Data(), sMultLabels[iMult].Data()),"pdf");
-
+    canReject->SaveAs(Form("%s/rejection_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
   }
 
   return;
