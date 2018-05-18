@@ -23,8 +23,8 @@ const Int_t iNumMult = 4;
 enum eMult { kNtrklets=0, kNtrks, kNtrks08pt, kRefMult08};
 TString sMultLabels[iNumMult] = {"Ntrklets", "Ntrks", "Ntrks08pt", "RefMult08"};
 
-Int_t iCutOFonline[] = {70,75,80,85,90,95,100,105,110,115,120};
-Double_t dCutOFonline[] = {70,75,80,85,90,95,100,105,110,115,120};
+Int_t iCutOFonline[] = {-1,70,75,80,85,90,95,100,105,110,115,120};
+Double_t dCutOFonline[] = {-1,70,75,80,85,90,95,100,105,110,115,120};
 const Int_t iNumCutOFonline = sizeof(iCutOFonline)/sizeof(iCutOFonline[0]);
 Color_t colorsCutOFonline[] = {kBlue+2, kRed, kGreen+2, kOrange+2, kMagenta+2, kCyan+2, kRed+1};
 
@@ -63,68 +63,46 @@ void MimicSPDHM()
   LoadHistos(fInputFile);
   SetCustomPalette();
 
-  Int_t iType = kCVHMSH2_PhysSel;
-  // Int_t iMult = kNtrklets;
-  // Int_t iMult = kRefMult08;
+  Int_t nPnt  = iNumCutOFonline;
+  Int_t nnCol = gStyle->GetNumberOfColors();
+
+  // ### Slicing distribution based on OFO cut
+  printf("INFO : Slicing the distributions based on OFO threshold\n");
+  TH1D* hDistMult[iNumMult][iNumTypes][iNumCutOFonline];
+
+  for(Int_t iType(0); iType < iNumTypes; ++iType)
+  {
+    for(Int_t iMult(0); iMult < iNumMult; ++iMult)
+    {
+      for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
+      {
+        hDistMult[iMult][iType][iCut] = ProjectDist(h2_FOonline[iMult][iType],iCutOFonline[iCut]);
+      }
+    }
+  }
+
+
+  // ### Calculating efficiencies based on OFO cut
+  printf("INFO : Calculating efficiencies\n");
+  TH1D* hEff[iNumMult][iNumTypes][iNumCutOFonline];
+
   for(Int_t iMult(0); iMult < iNumMult; ++iMult)
   {
+    Int_t iType = kCVHMSH2_PhysSel;
+    TH1D* hDistMult_CINT7 = hDistMult[iMult][kCINT7_PhysSel][0];
+
+    for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
+    {
+      hEff[iMult][iType][iCut] = GetEfficiency(hDistMult[iMult][iType][iCut],hDistMult_CINT7);
+    }
+
 
     TLegend* leg = new TLegend(0.6,0.4,0.88,0.88);
     leg->SetFillColorAlpha(0.0,0.0);
     leg->SetBorderSize(0);
     leg->SetHeader("FO online thrs.");
     leg->SetTextSize(0.04);
-
-    // slicing distribution wrt. #FOs
-    TH1D* hDistMult[iNumMult][iNumTypes][iNumCutOFonline];
-    TH1D* hEff[iNumMult][iNumTypes][iNumCutOFonline];
-
-    TH1D* hDistMult_CINT7 = ProjectDist(h2_FOonline[iMult][kCINT7_PhysSel],-1);
-    hDistMult_CINT7->SetStats(0);
-    hDistMult_CINT7->SetLineColor(kBlack);
     leg->AddEntry(hDistMult_CINT7,"CINT7","l");
-
-
-    Int_t nPnt  = iNumCutOFonline;
-    Int_t nnCol = gStyle->GetNumberOfColors();
-
-    for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
-    {
-      Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
-      Int_t iColor = gStyle->GetColorPalette(idx);
-
-      hDistMult[iMult][iType][iCut] = ProjectDist(h2_FOonline[iMult][iType],iCutOFonline[iCut]);
-      hEff[iMult][iType][iCut] = GetEfficiency(hDistMult[iMult][iType][iCut],hDistMult_CINT7);
-
-
-      hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
-      hEff[iMult][iType][iCut]->SetLineColor(iColor);
-
-      leg->AddEntry(hDistMult[iMult][iType][iCut],Form("%d+",iCutOFonline[iCut]),"l");
-    }
-
-    // rejection factors
-    TH1D* hRejectionFactor_PhysSel = new TH1D("hRejectionFactor_PhysSel","hRejectionFactor_PhysSel",iNumCutOFonline-1,dCutOFonline);
-    hRejectionFactor_PhysSel->SetMarkerStyle(kFullCircle);
-    hRejectionFactor_PhysSel->SetMarkerColor(kBlack);
-    TGraphErrors* graph_RejectionFactor_PhysSel = new TGraphErrors(iNumCutOFonline);
-    graph_RejectionFactor_PhysSel->SetMarkerStyle(kFullCircle);
-    graph_RejectionFactor_PhysSel->SetMarkerColor(kBlack);
-
-    Int_t iNumEvents_CINT7_PhysSel = hDistFOonline[kCINT7_PhysSel]->GetEntries();
-    Int_t iNumEvents_CVHSH2_PhysSel[iNumCutOFonline];
-    Double_t dRejectionFactor[iNumCutOFonline];
-
-    printf("=== Rejection factors =====");
-    printf("CINT7 %d \n",iNumEvents_CINT7_PhysSel);
-    for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
-    {
-      iNumEvents_CVHSH2_PhysSel[iCut] = hDistMult[iMult][iType][iCut]->GetEntries();
-      dRejectionFactor[iCut] = ((Double_t) iNumEvents_CVHSH2_PhysSel[iCut]) / iNumEvents_CINT7_PhysSel;
-      hRejectionFactor_PhysSel->SetBinContent(iCut+1, dRejectionFactor[iCut]);
-      graph_RejectionFactor_PhysSel->SetPoint(iCut, iCutOFonline[iCut], dRejectionFactor[iCut]);
-      printf("%d: %d | MB %d | rejection %f \n",iCutOFonline[iCut], iNumEvents_CVHSH2_PhysSel[iCut], iNumEvents_CINT7_PhysSel, dRejectionFactor[iCut]);
-    }
 
     TLine* line = new TLine();
     line->SetLineStyle(kDashed);
@@ -133,31 +111,77 @@ void MimicSPDHM()
 
     TCanvas* canEff = new TCanvas("canEff","canEff",1500,600);
     canEff->Divide(3,1);
+
     canEff->cd(1);
     gPad->SetLogy();
+    hDistMult_CINT7->SetStats(0);
     hDistMult_CINT7->Draw();
+    for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
+    {
+      hDistMult[iMult][iType][iCut]->Draw("same");
+
+      Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
+      Int_t iColor = gStyle->GetColorPalette(idx);
+      hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
+      leg->AddEntry(hDistMult[iMult][iType][iCut],Form("%d+",iCutOFonline[iCut]),"l");
+    }
+
     leg->Draw();
-    for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut) { hDistMult[iMult][iType][iCut]->Draw("same"); }
     canEff->cd(2);
     TH1* frame_canEff_2 = (TH1*) gPad->DrawFrame(0,0.0,140,1.1);
     frame_canEff_2->SetTitle(Form("Efficiency: SPDHM / CINT7 (after Physics Selection); %s; Eff",sMultLabels[iMult].Data()));
     gPad->SetGridx();
-    for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut) { hEff[iMult][iType][iCut]->Draw("same"); }
+    for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
+    {
+      Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
+      Int_t iColor = gStyle->GetColorPalette(idx);
+      hEff[iMult][iType][iCut]->SetLineColor(iColor);
+
+      hEff[iMult][iType][iCut]->Draw("same");
+    }
     line->DrawLine(0,0.95,140,0.95);
 
     canEff->SaveAs(Form("%s/eff_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
-
-
-    TCanvas* canReject = new TCanvas("canReject","canRejection",800,800);
-    canReject->cd(1);
-    gPad->SetLogy();
-    TH1* frame_canReject_1 = (TH1*) gPad->DrawFrame(iCutOFonline[0]-5,1e-4,iCutOFonline[iNumCutOFonline-1]+5,0.1);
-    gPad->SetGridy();
-    frame_canReject_1->SetTitle(Form("Rejection factor: %s (after Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
-    // hRejectionFactor_PhysSel->Draw("same p");
-    graph_RejectionFactor_PhysSel->Draw("same p");
-    canReject->SaveAs(Form("%s/rejection_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
   }
+
+  // ### Calculating efficiencies based on OFO cut
+  printf("INFO : Calculating rejection factors\n");
+  TH1D* hRejectionFactor = new TH1D("hRejectionFactor","hRejectionFactor",iNumCutOFonline-1,dCutOFonline);
+  hRejectionFactor->SetMarkerStyle(kFullCircle);
+  hRejectionFactor->SetMarkerColor(kBlack);
+  TGraphErrors* graph_RejectionFactor = new TGraphErrors(iNumCutOFonline);
+  graph_RejectionFactor->SetMarkerStyle(kFullCircle);
+  graph_RejectionFactor->SetMarkerColor(kBlack);
+
+  Int_t iNumEvents_CINT7 = hDistFOonline[kCINT7]->GetEntries();
+  Int_t iNumEvents_CVHSH2[iNumCutOFonline];
+  Double_t dRejectionFactor[iNumCutOFonline];
+
+  Int_t iType = kCVHMSH2;
+  Int_t iMult = kRefMult08;
+
+  printf("=== Rejection factors (w/o PhysSel) =====\n");
+  printf("CINT7 %d \n",iNumEvents_CINT7);
+  for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
+  {
+    iNumEvents_CVHSH2[iCut] = hDistMult[iMult][iType][iCut]->GetEntries();
+    dRejectionFactor[iCut] = ((Double_t) iNumEvents_CVHSH2[iCut]) / iNumEvents_CINT7;
+    printf("%d: %d | rejection %f \n",iCutOFonline[iCut], iNumEvents_CVHSH2[iCut], dRejectionFactor[iCut]);
+
+    // hRejectionFactor->SetBinContent(iCut+1, dRejectionFactor[iCut]);
+    graph_RejectionFactor->SetPoint(iCut, iCutOFonline[iCut], dRejectionFactor[iCut]);
+  }
+
+  TCanvas* canReject = new TCanvas("canReject","canRejection",800,800);
+  canReject->cd(1);
+  gPad->SetLogy();
+  TH1* frame_canReject_1 = (TH1*) gPad->DrawFrame(iCutOFonline[1]-5,1e-4,iCutOFonline[iNumCutOFonline-1]+5,0.1);
+  frame_canReject_1->SetTitle(Form("Rejection factor: %s (w/o Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
+  gPad->SetGridy();
+
+  hRejectionFactor->Draw("same p");
+  graph_RejectionFactor->Draw("same p");
+  canReject->SaveAs(Form("%s/rejection_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
 
   return;
 }
