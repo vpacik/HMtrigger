@@ -43,15 +43,14 @@ TH1D* ProjectDist(TH2D* hist, Int_t iCut);
 TH1D* GetEfficiency(TH1D* trigger, TH1D* mb);
 Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
-
 void MimicSPDHM()
 {
   TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
-  TString sInFileName = "Skimmed.root";
+  TString sInFileName = "Skimmed_HMwithPFPU.root";
+  TString sOutputPath = sPath + "/out_HWwithPFPU/";
 
   // ===============================================================================
-  TString sOutputPath = sPath + "/out/";
   gSystem->mkdir(sOutputPath.Data(),1);
 
   // openning input & output file
@@ -77,6 +76,10 @@ void MimicSPDHM()
       for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
       {
         hDistMult[iMult][iType][iCut] = ProjectDist(h2_FOonline[iMult][iType],iCutOFonline[iCut]);
+
+        Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
+        Int_t iColor = gStyle->GetColorPalette(idx);
+        hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
       }
     }
   }
@@ -96,6 +99,29 @@ void MimicSPDHM()
       hEff[iMult][iType][iCut] = GetEfficiency(hDistMult[iMult][iType][iCut],hDistMult_CINT7);
     }
 
+    // Getting thresholds & fractions of SH2 events
+    TGraphErrors* graph_turnon = new TGraphErrors(iNumCutOFonline);
+    graph_turnon->SetMarkerStyle(kFullCircle);
+    graph_turnon->SetMarkerColor(kBlack);
+
+    TLegend* legThrs = new TLegend(0.12,0.4,0.4,0.88);
+    legThrs->SetFillColorAlpha(0.0,0.0);
+    legThrs->SetBorderSize(0);
+    legThrs->SetHeader("Mult. thresholds (OFO cut)");
+    legThrs->SetTextSize(0.04);
+
+    for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
+    {
+      Int_t iThrsOFObin = hEff[iMult][iType][iCut]->FindFirstBinAbove(0.95);
+      Int_t iThrsOFO = hEff[iMult][iType][iCut]->GetBinCenter(iThrsOFObin);
+      Double_t dTurnOn = GetTurnOn(hDistMult[iMult][iType][iCut], iThrsOFObin);
+      printf("Cut %d | Thrs %d (bin %d) | TurnOn %f \n", iCutOFonline[iCut], iThrsOFO, iThrsOFObin, dTurnOn);
+      graph_turnon->SetPoint(iCut, iCutOFonline[iCut], dTurnOn);
+      legThrs->AddEntry(hDistMult[iMult][iType][iCut],Form("%d (%d+)",iThrsOFO, iCutOFonline[iCut]),"l");
+
+    }
+
+    printf("test turnon %f\n", GetTurnOn(hDistMult[kRefMult08][kCVHMSH2_PhysSel][1], 42));
 
     TLegend* leg = new TLegend(0.6,0.4,0.88,0.88);
     leg->SetFillColorAlpha(0.0,0.0);
@@ -103,6 +129,7 @@ void MimicSPDHM()
     leg->SetHeader("FO online thrs.");
     leg->SetTextSize(0.04);
     leg->AddEntry(hDistMult_CINT7,"CINT7","l");
+
 
     TLine* line = new TLine();
     line->SetLineStyle(kDashed);
@@ -119,16 +146,12 @@ void MimicSPDHM()
     for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
     {
       hDistMult[iMult][iType][iCut]->Draw("same");
-
-      Int_t idx = iCut * Float_t(nnCol-1) / (nPnt-1);
-      Int_t iColor = gStyle->GetColorPalette(idx);
-      hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
       leg->AddEntry(hDistMult[iMult][iType][iCut],Form("%d+",iCutOFonline[iCut]),"l");
     }
 
     leg->Draw();
     canEff->cd(2);
-    TH1* frame_canEff_2 = (TH1*) gPad->DrawFrame(0,0.0,140,1.1);
+    TH1* frame_canEff_2 = (TH1*) gPad->DrawFrame(0,0.0,120,1.1);
     frame_canEff_2->SetTitle(Form("Efficiency: SPDHM / CINT7 (after Physics Selection); %s; Eff",sMultLabels[iMult].Data()));
     gPad->SetGridx();
     for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
@@ -140,11 +163,82 @@ void MimicSPDHM()
       hEff[iMult][iType][iCut]->Draw("same");
     }
     line->DrawLine(0,0.95,140,0.95);
+    legThrs->Draw();
+    canEff->cd(3);
+    TH1* frame_canEff_3 = (TH1*) gPad->DrawFrame(iCutOFonline[1]-5,0.0,iCutOFonline[iNumCutOFonline-1]+5,0.50);
+    frame_canEff_3->SetTitle(Form("TurnOn (95%% thrs): %s (with Physics Selection); #FO online; TurnOn",sMultLabels[iMult].Data()));
+    gPad->SetGridy();
+    graph_turnon->Draw("same p");
 
     canEff->SaveAs(Form("%s/eff_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
   }
 
-  // ### Calculating efficiencies based on OFO cut
+  // ### Calculating purity
+  for(Int_t iMult(0); iMult < iNumMult; ++iMult)
+  {
+    TLegend* leg = new TLegend(0.6,0.4,0.88,0.88);
+    leg->SetFillColorAlpha(0.0,0.0);
+    leg->SetBorderSize(0);
+    leg->SetHeader("FO online thrs.");
+    leg->SetTextSize(0.04);
+
+    TCanvas* canPurity = new TCanvas("canPurity","canPurity",1500,600);
+    canPurity->Divide(3,1);
+
+    canPurity->cd(1);
+    gPad->SetLogy();
+    TH1* frame_canPurity_1 = (TH1*) gPad->DrawFrame(0.0,1,150,1e5);
+    frame_canPurity_1->SetTitle(Form("Multiplicity distribution (CVHMSH2); %s;;", hDistMult[iMult][kCVHMSH2][0]->GetXaxis()->GetTitle()));
+    leg->Draw();
+
+    canPurity->cd(2);
+    TH1* frame_canPurity_2 = (TH1*) gPad->DrawFrame(0.0,0.0,150,1.0);
+    frame_canPurity_2->SetTitle(Form("Purity (CVHMSH2); %s; Purity;", hDistMult[iMult][kCVHMSH2][0]->GetXaxis()->GetTitle()));
+
+    canPurity->cd(3);
+    gPad->SetGridy();
+    TH1* frame_canPurity_3 = (TH1*) gPad->DrawFrame(iCutOFonline[1]-5,0.5,iCutOFonline[iNumCutOFonline-1]+5,1.0);
+    frame_canPurity_3->SetTitle(Form("Integrated purity (CVHMSH2); #FO online; Purity"));
+
+
+
+    TH1D* hPurityCVHMSH2[iNumCutOFonline];
+    Double_t dIntPurityCVHMSH2[iNumCutOFonline];
+
+    TGraphErrors* graph_IntPurity_CVHMSH2 = new TGraphErrors(iNumCutOFonline);
+    graph_IntPurity_CVHMSH2->SetMarkerStyle(kFullCircle);
+    graph_IntPurity_CVHMSH2->SetMarkerColor(kBlack);
+
+    for(Int_t iCut(1); iCut < iNumCutOFonline; ++iCut)
+    {
+      leg->AddEntry(hDistMult[iMult][kCVHMSH2][iCut],Form("%d+",iCutOFonline[iCut]),"l");
+
+      hPurityCVHMSH2[iCut] = (TH1D*) hDistMult[iMult][kCVHMSH2][iCut]->Clone(Form("purity_%s", hDistMult[iMult][kCVHMSH2][iCut]->GetName()));
+      hPurityCVHMSH2[iCut]->Divide(hDistMult[iMult][kCVHMSH2_PhysSel][iCut],hDistMult[iMult][kCVHMSH2][iCut],1.,1.);
+      // hPurityCVHMSH2[iCut]->SetTitle("Purity (INT7); # tracklets; PhysSel / INT7");
+
+      dIntPurityCVHMSH2[iCut] = hDistMult[iMult][kCVHMSH2_PhysSel][iCut]->GetEntries() / hDistMult[iMult][kCVHMSH2][iCut]->GetEntries();
+      graph_IntPurity_CVHMSH2->SetPoint(iCut, iCutOFonline[iCut], dIntPurityCVHMSH2[iCut]);
+
+      canPurity->cd(1);
+      hDistMult[iMult][kCVHMSH2][iCut]->Draw("same");
+      hDistMult[iMult][kCVHMSH2_PhysSel][iCut]->Draw("same");
+
+      canPurity->cd(2);
+      hPurityCVHMSH2[iCut]->Draw("same");
+    }
+
+    canPurity->cd(3);
+    graph_IntPurity_CVHMSH2->Draw("same p");
+
+    canPurity->SaveAs(Form("%s/purity_%s_%s.pdf",sOutputPath.Data(), "CVHMSH2", sMultLabels[iMult].Data()),"pdf");
+  }
+
+
+
+
+
+  // ### Calculating rejection factors
   printf("INFO : Calculating rejection factors\n");
   TH1D* hRejectionFactor = new TH1D("hRejectionFactor","hRejectionFactor",iNumCutOFonline-1,dCutOFonline);
   hRejectionFactor->SetMarkerStyle(kFullCircle);
@@ -176,12 +270,12 @@ void MimicSPDHM()
   canReject->cd(1);
   gPad->SetLogy();
   TH1* frame_canReject_1 = (TH1*) gPad->DrawFrame(iCutOFonline[1]-5,1e-4,iCutOFonline[iNumCutOFonline-1]+5,0.1);
-  frame_canReject_1->SetTitle(Form("Rejection factor: %s (w/o Physics Selection); #FO online; Rejection",sMultLabels[iMult].Data()));
+  frame_canReject_1->SetTitle(Form("Rejection factor (w/o Physics Selection); #FO online; Rejection"));
   gPad->SetGridy();
 
   hRejectionFactor->Draw("same p");
   graph_RejectionFactor->Draw("same p");
-  canReject->SaveAs(Form("%s/rejection_%s_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data(), sMultLabels[iMult].Data()),"pdf");
+  canReject->SaveAs(Form("%s/rejection_%s.pdf",sOutputPath.Data(), sTypeLabels[iType].Data()),"pdf");
 
   return;
 }
@@ -218,9 +312,13 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold)
   if(!mult) { printf("ERROR: Multiplicity histo does not exists!\n"); return -1.; }
   threshold++; // histo bin number offset : starting with 1 instead of 0
 
-  Double_t dEntries = mult->GetEntries();
+  // Double_t dEntries = mult->GetEntries();
   Double_t dInt = mult->Integral(threshold,mult->GetNbinsX()+1);
+  Double_t dEntries = mult->Integral(0,mult->GetNbinsX()+1);
   // printf("Histo: Entries %g | ntegral %g | single bin (thrs) %g \n",mult->GetEntries(), mult->Integral(threshold,mult->GetNbinsX()+1), mult->Integral(threshold,threshold));
+
+  // printf("INFO: GetTurnOn : %f / %f = %f (%d)\n",dInt, dEntries, dInt / dEntries, threshold);
+
   return dInt / dEntries;
 }
 // =====================================================================================================================
