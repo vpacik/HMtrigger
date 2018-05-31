@@ -48,7 +48,6 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fPhysSelDecision(0),
   fPhysSelPassed(kFALSE),
   fEventCutsPassed(kFALSE),
-  fChunkFileName(new TObjString()),
   fEventInFile(-1),
   fRunNumber(-1),
   fPeriod(0),
@@ -123,7 +122,6 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fPhysSelDecision",&fPhysSelDecision);
   fTree->Branch("fPhysSelPassed",&fPhysSelPassed);
   fTree->Branch("fEventCutsPassed",&fEventCutsPassed);
-  fTree->Branch("fChunkFileName",&fChunkFileName);
   fTree->Branch("fEventInFile",&fEventInFile);
   fTree->Branch("fRunNumber",&fRunNumber);
   fTree->Branch("fPeriod",&fPeriod);
@@ -201,7 +199,6 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 
   fEventCutsPassed = fEventCuts.AcceptEvent(InputEvent());
 
-  fChunkFileName->SetString(((TTree*) GetInputData(0))->GetCurrentFile()->GetName());
   fEventInFile = fInputEvent->GetEventNumberInFile();
   fRunNumber  = fInputEvent->GetRunNumber();
   fPeriod = fInputEvent->GetPeriodNumber();

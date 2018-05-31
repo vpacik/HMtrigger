@@ -16,7 +16,6 @@ TObjString*         fClassesFired = 0x0; // list of fired trigger classes
 UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
 Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
 Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
-TObjString*         fChunkFileName = 0x0; // current file name
 Int_t               fEventInFile; // current event number in the file
 Int_t               fRunNumber; // run number
 UInt_t              fPeriod; // run period
@@ -272,7 +271,6 @@ Bool_t LoadTTreeVars()
   eventTree->SetBranchAddress("fPhysSelDecision",&fPhysSelDecision);
   eventTree->SetBranchAddress("fPhysSelPassed",&fPhysSelPassed);
   eventTree->SetBranchAddress("fEventCutsPassed",&fEventCutsPassed);
-  eventTree->SetBranchAddress("fChunkFileName",&fChunkFileName);
   eventTree->SetBranchAddress("fEventInFile",&fEventInFile);
   eventTree->SetBranchAddress("fRunNumber",&fRunNumber);
   eventTree->SetBranchAddress("fPeriod",&fPeriod);

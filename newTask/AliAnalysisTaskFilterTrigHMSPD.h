@@ -25,7 +25,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
     Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
     Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
-    TObjString*         fChunkFileName; // current file name
     Int_t               fEventInFile; // current event number in the file
     Int_t               fRunNumber; // run number
     UInt_t              fPeriod; // run period
