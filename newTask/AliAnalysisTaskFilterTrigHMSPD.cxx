@@ -2,6 +2,7 @@
 // #include "AliEventCuts.h"
 #include "AliESDInputHandler.h"
 #include "AliESDEvent.h"
+#include "AliESDtrackCuts.h"
 #include "AliESDtrack.h"
 #include "AliESDVZERO.h"
 #include "AliESDVZEROfriend.h"
@@ -22,9 +23,11 @@ ClassImp(AliAnalysisTaskFilterTrigHMSPD)
 AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name) :
   AliAnalysisTaskSE(name),
   fEventCuts(),
-  fTracksPtNumBins(100),
-  fTracksPtLowEdge(0.),
-  fTracksPtUpEdge(100.),
+  fESDtrackCuts(0x0),
+  fTracksPtNumBins(50),
+  fTracksPtLowEdge(0.0),
+  fTracksPtUpEdge(50.0),
+  fTrackEtaMax(0.8),
   fList(0x0),
   fhEventCounter(0x0),
   fTree(0x0),
@@ -43,15 +46,22 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fFiredTriggerInputs(new TObjString()),
   fIR1(),
   fIR2(),
+  fNumContrSPD(0),
   fNumTracklets(0),
+  fNumTracksRefMult08(0),
+  fNumTracksMultKatarina(0),
   fFiredChipMap(),
   fFiredChipMapFO(),
   fNumITSCls(),
   fTriggerMaskTOF(),
+  fV0PastFutureFilled(0),
+  fV0PastFuturePileUp(0),
   fV0ATotMult(0),
   fV0CTotMult(0),
   fV0ATime(0),
   fV0CTime(0),
+  fV0ATriggerCharge(0),
+  fV0CTriggerCharge(0),
   fV0AMult(),
   fV0CMult(),
   fV0AFlagsBB(0),
@@ -84,6 +94,7 @@ AliAnalysisTaskFilterTrigHMSPD::~AliAnalysisTaskFilterTrigHMSPD()
 {
   if(fList) delete fList;
   if(fTree) delete fTree;
+  if(fESDtrackCuts) delete fESDtrackCuts;
 }
 //-----------------------------------------------------------------------------
 void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
@@ -94,6 +105,13 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fList->SetOwner(kTRUE);
   fhEventCounter = new TH1D("fhEventCounter","fhEventCounter",1,0,1);
   fList->Add(fhEventCounter);
+
+  if(!fESDtrackCuts)
+  {
+    fESDtrackCuts = AliESDtrackCuts::GetStandardITSTPCTrackCuts2010(kTRUE,kFALSE);
+    fESDtrackCuts->SetPtRange(0.15);
+    fESDtrackCuts->SetEtaRange(-1.0,1.0);
+  }
 
   fTree = new TTree("events","events");
   fTree->Branch("fClassesFired",&fClassesFired);
@@ -111,12 +129,17 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fFiredTriggerInputs",&fFiredTriggerInputs);
   fTree->Branch("fIR1",&fIR1);
   fTree->Branch("fIR2",&fIR2);
+  fTree->Branch("fNumContrSPD",&fNumContrSPD);
   fTree->Branch("fFiredChipMap",&fFiredChipMap);
   fTree->Branch("fFiredChipMapFO",&fFiredChipMapFO);
   fTree->Branch("fNumITSCls",&fNumITSCls,"fNumITSCls[6]/I");
   fTree->Branch("fTriggerMaskTOF",&fTriggerMaskTOF,"fTriggerMask[72]/I");
+  fTree->Branch("fV0PastFutureFilled",&fV0PastFutureFilled);
+  fTree->Branch("fV0PastFuturePileUp",&fV0PastFuturePileUp);
   fTree->Branch("fV0ATotMult",&fV0ATotMult);
   fTree->Branch("fV0CTotMult",&fV0CTotMult);
+  fTree->Branch("fV0ATriggerCharge",&fV0ATriggerCharge);
+  fTree->Branch("fV0CTriggerCharge",&fV0CTriggerCharge);
   fTree->Branch("fV0ATime",&fV0ATime);
   fTree->Branch("fV0CTime",&fV0CTime);
   fTree->Branch("fV0AMult",&fV0AMult,"fV0AMult[32]/F");
@@ -141,6 +164,8 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fVtxTPC",&fVtxTPC);
   fTree->Branch("fNumTracklets",&fNumTracklets);
   fTree->Branch("fNumTracks",&fNumTracks);
+  fTree->Branch("fNumTracksRefMult08",&fNumTracksRefMult08);
+  fTree->Branch("fNumTracksMultKatarina",&fNumTracksMultKatarina);
   fTree->Branch("fTracksPt",&fTracksPt);
 
   PostData(1,fList);
@@ -171,13 +196,11 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fhEventCounter->Fill("Interesting",1);
 
   fPhysSelDecision = fInputHandler->IsEventSelected();
-  if(fPhysSelDecision) fhEventCounter->Fill("PhysicsSelection",1);
   fPhysSelPassed = fPhysSelDecision ? kTRUE : kFALSE;
   // fIsINT7 = fPhysSelDecision& AliVEvent::kINT7;
   // fIsSH2 = fPhysSelDecision& AliVEvent::kHighMultSPD;
 
   fEventCutsPassed = fEventCuts.AcceptEvent(InputEvent());
-  if(fEventCutsPassed) fhEventCounter->Fill("EventCuts",1);
 
   fChunkFileName->SetString(((TTree*) GetInputData(0))->GetCurrentFile()->GetName());
   fEventInFile = fInputEvent->GetEventNumberInFile();
@@ -189,6 +212,7 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fL1inputs = fInputEvent->GetHeader()->GetL1TriggerInputs();
   fIR1 = fInputEvent->GetHeader()->GetIRInt1InteractionMap();
   fIR2 = fInputEvent->GetHeader()->GetIRInt2InteractionMap();
+  fNumContrSPD = fInputEvent->GetPrimaryVertexSPD()->GetNContributors();
   fFiredTriggerInputs->SetString( ( (AliESDHeader*)fInputEvent->GetHeader() )->GetFiredTriggerInputs() );
 
   // === do not know what exactly happens here ====
@@ -257,6 +281,9 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 
   // VZERO
   AliVVZERO* vzero = fInputEvent->GetVZEROData();
+  fV0PastFutureFilled = vzero->TestBit(AliVVZERO::kPastFutureFlagsFilled);
+  fV0ATriggerCharge = vzero->GetTriggerChargeA();
+  fV0CTriggerCharge = vzero->GetTriggerChargeC();
   fV0ATotMult = vzero->GetMTotV0A();
   fV0CTotMult = vzero->GetMTotV0C();
   fV0ATime = vzero->GetV0ATime();
@@ -273,8 +300,11 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fV0CTriggerBG[i] = vzero->BGTriggerV0C(i);
   }
 
-  // online BB/BG
+  // online BB/BG // past-future protection
+  fV0PastFuturePileUp = kFALSE;
   fV0AFlagsBB = 0; fV0CFlagsBB = 0; fV0AFlagsBG = 0; fV0CFlagsBG = 0;
+  Bool_t vir[21] = {0};
+
   for (Int_t i = 0; i < 64; i++)
   {
     fV0FlagBB[i] = vzero->GetBBFlag(i);
@@ -290,6 +320,41 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     }
   }
 
+
+  for (Int_t bc = 0; bc < 21; bc++)
+  {
+    UChar_t nBBA = 0;
+    UChar_t nBBC = 0;
+    UChar_t nBGA = 0;
+    UChar_t nBGC = 0;
+
+    Int_t fVIRBBAflags = 10;
+    Int_t fVIRBBCflags = 10;
+    Int_t fVIRBGAflags = 33;
+    Int_t fVIRBGCflags = 33;
+
+    if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
+    if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
+    if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
+    if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
+
+    vir[bc] |= nBBA>=fVIRBBAflags;
+    vir[bc] |= nBBC>=fVIRBBCflags;
+    vir[bc] |= nBGA>=fVIRBGAflags;
+    vir[bc] |= nBGC>=fVIRBGCflags;
+  }
+
+
+  Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
+  Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
+  for (Int_t bc = bcMin; bc <= bcMax; bc++)
+  {
+    if (bc==10) continue; // skip current bc
+    if (bc < 0) continue;
+    if (bc >20) continue;
+    if (vir[bc]) fV0PastFuturePileUp = kTRUE;
+  }
+
   fV0ADecision = vzero->GetV0ADecision();
   fV0CDecision = vzero->GetV0CDecision();
 
@@ -299,20 +364,35 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
     fVtxX   = vertex->GetX();
     fVtxY   = vertex->GetY();
     fVtxZ   = vertex->GetZ();
+    if(TMath::Abs(fVtxZ) > 10.0) { return; }
     fVtxTPC = TString(vertex->GetName()).CompareTo("PrimaryVertex") && TString(vertex->GetName()).CompareTo("SPDVertex");
+    fhEventCounter->Fill("PVz",1);
   }
 
-  fTracksPt->Reset();
+  if(fPhysSelDecision) { fhEventCounter->Fill("PhysicsSelection",1); }
+  if(fEventCutsPassed) { fhEventCounter->Fill("EventCuts",1); }
 
+
+  // RefMult08 mimicing
+  fNumTracksRefMult08 = fESDtrackCuts->GetReferenceMultiplicity(dynamic_cast<AliESDEvent*>(fInputEvent), AliESDtrackCuts::kTrackletsITSTPC, 0.8);
+  fNumTracksMultKatarina = 0;
+
+  fTracksPt->Reset();
   Short_t index = -1;
   AliESDtrack* track = 0x0;
+
   fNumTracks = fInputEvent->GetNumberOfTracks();
   for(Int_t i(0); i < fNumTracks; i++)
   {
     track = (AliESDtrack*) fInputEvent->GetTrack(i);
-    if(!track) continue;
+    if(!track) { continue; }
 
-    index = GetPtBinIndex(track->Pt());
+    Double_t dEta = track->Eta();
+    if( TMath::Abs(dEta) > fTrackEtaMax ) { continue; }
+
+    Double_t dPt = track->Pt();
+    if(dPt >= 0.3 && dPt <= 3.0) { fNumTracksMultKatarina++; }
+    index = GetPtBinIndex(dPt);
     if(index == -1) continue;
 
     fTracksPt->AddAt(fTracksPt->At(index)+1,index);

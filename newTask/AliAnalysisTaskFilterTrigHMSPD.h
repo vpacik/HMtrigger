@@ -3,7 +3,7 @@
 
 #include "AliAnalysisTaskSE.h"
 #include "AliEventCuts.h"
-
+#include "AliESDtrackCuts.h"
 
 class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
   public:
@@ -18,9 +18,11 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
 
+    AliESDtrackCuts*     fESDtrackCuts; //!
     Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
-    Float_t             fTracksPtLowEdge; // low edge of pt (binned) dist
-    Float_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
+    Double_t             fTracksPtLowEdge; // low edge of pt (binned) dist
+    Double_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
+    Double_t            fTrackEtaMax; // eta acceptance of charged tracks
 
     TList*              fList; //! output TList
     TH1D*               fhEventCounter; //! Event counter
@@ -42,18 +44,26 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     TBits               fIR1; // interaction map for INT1 events (normally V0A&V0C) near the event, that's Int1Id-EventId within -90 +90 BXs
     TBits               fIR2; // map of the INT2 events (normally 0TVX) near the event, that's Int2Id-EventId within -90 +90 BXs
+    Int_t               fNumContrSPD; // number of contributors to SPD PV
 
     Int_t               fNumTracklets; // number of tracklets
+    Int_t               fNumTracks; // number of tracks
+    Int_t               fNumTracksRefMult08; // number of tracks in midrapidity |eta|<0.8 ala RefMult08 multiplicity estimator
+    Int_t               fNumTracksMultKatarina; // number of tracks in |eta|< 0.8 and 0.2 < pt < 3 GeV/c (ala Katarina Gajdosova expect for FB selection)
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
     TBits               fFiredChipMapFO; // map of fired FastOr chips
     Int_t               fNumITSCls[6]; // number of ITS clusters per layer
     UInt_t              fTriggerMaskTOF[72]; // TOF trigger mask array
     Float_t             fV0ATotMult; // total multiplicity in V0A
     Float_t             fV0CTotMult; // total multiplicity in V0C
+    UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
+    UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
     Float_t             fV0AMult[32]; // multiplicity in V0A cells
     Float_t             fV0CMult[32];  // multiplicity in V0C cells
     Float_t             fV0ATime; // average time in V0A
     Float_t             fV0CTime; // average time in V0C
+    Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
+    Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
     Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
     Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
     Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
@@ -73,10 +83,9 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Double_t            fVtxZ; // primary vertex z-coordinate
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
-    Int_t               fNumTracks; // number of tracks
     TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
 
 
-  ClassDef(AliAnalysisTaskFilterTrigHMSPD,2);
+  ClassDef(AliAnalysisTaskFilterTrigHMSPD,4);
 };
 #endif
