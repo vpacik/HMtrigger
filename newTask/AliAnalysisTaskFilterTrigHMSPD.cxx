@@ -65,6 +65,9 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fFiredChipMapFO(),
   fNumITSCls(),
   fTriggerMaskTOF(),
+  fNumberTOFcls(0),
+  fNumberTOFtrgPads(0),
+  fNumberTOFmaxipads(0),
   fV0PastFutureFilled(0),
   fV0PastFuturePileUp(0),
   fV0ATotMult(0),
@@ -137,6 +140,9 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fFiredChipMapFO",&fFiredChipMapFO);
   fTree->Branch("fNumITSCls",&fNumITSCls,"fNumITSCls[6]/I");
   fTree->Branch("fTriggerMaskTOF",&fTriggerMaskTOF,"fTriggerMask[72]/I");
+  fTree->Branch("fNumberTOFcls", &fNumberTOFcls);
+  fTree->Branch("fNumberTOFtrgPads", &fNumberTOFtrgPads);
+  fTree->Branch("fNumberTOFmaxipads", &fNumberTOFmaxipads);
   fTree->Branch("fV0PastFutureFilled",&fV0PastFutureFilled);
   fTree->Branch("fV0PastFuturePileUp",&fV0PastFuturePileUp);
   fTree->Branch("fV0ATotMult",&fV0ATotMult);
@@ -273,7 +279,12 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   for(Int_t i = 0; i < 6; i++) { fNumITSCls[i] = fInputEvent->GetNumberOfITSClusters(i); }
 
   // TOF
-  for(UInt_t k = 0; k < 72; k++) { fTriggerMaskTOF[k] = fInputEvent->GetTOFHeader()->GetTriggerMask()->GetTriggerMask(k); }
+  const AliTOFHeader* tof = fInputEvent->GetTOFHeader();
+  fNumberTOFcls = tof->GetNumberOfTOFclusters();
+  fNumberTOFmaxipads = tof->GetNumberOfTOFmaxipad();
+  fNumberTOFtrgPads = tof->GetNumberOfTOFtrgPads();
+  for(UInt_t k = 0; k < 72; k++) { fTriggerMaskTOF[k] = tof->GetTriggerMask()->GetTriggerMask(k); }
+
 
   // VZERO
   AliVVZERO* vzero = fInputEvent->GetVZEROData();

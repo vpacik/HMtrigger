@@ -45,6 +45,9 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     TBits               fFiredChipMapFO; // map of fired FastOr chips
     Int_t               fNumITSCls[6]; // number of ITS clusters per layer
     UInt_t              fTriggerMaskTOF[72]; // TOF trigger mask array
+    Int_t               fNumberTOFcls; // number of reconstructed TOF clusters
+    Int_t               fNumberTOFtrgPads; // number of reconstructed trigger pads
+    Int_t               fNumberTOFmaxipads; // number of TOF trigger pads on
     Float_t             fV0ATotMult; // total multiplicity in V0A
     Float_t             fV0CTotMult; // total multiplicity in V0C
     UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
