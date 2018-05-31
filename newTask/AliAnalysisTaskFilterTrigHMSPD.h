@@ -47,6 +47,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Int_t               fNumContrSPD; // number of contributors to SPD PV
 
     Int_t               fNumTracklets; // number of tracklets
+    Int_t               fNumTracks; // number of tracks
     Int_t               fNumTracksRefMult08; // number of tracks in midrapidity |eta|<0.8 ala RefMult08 multiplicity estimator
     Int_t               fNumTracksMultKatarina; // number of tracks in |eta|< 0.8 and 0.2 < pt < 3 GeV/c (ala Katarina Gajdosova expect for FB selection)
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
@@ -82,7 +83,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Double_t            fVtxZ; // primary vertex z-coordinate
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
-    Int_t               fNumTracks; // number of tracks
     TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
 
 
