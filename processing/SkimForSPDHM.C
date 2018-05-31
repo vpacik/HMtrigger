@@ -92,6 +92,7 @@ TH2D* h2_FOonline_Ntrks[iNumTypes];
 TH2D* h2_FOonline_Ntrks08pt[iNumTypes];
 TH2D* h2_FOonline_RefMult08[iNumTypes];
 
+Bool_t PastFutureProtection();
 Bool_t CheckTriggerConsistency();
 void CreateHistos();
 void FillCommonHistos(eEventType type);
@@ -101,9 +102,10 @@ void SkimForSPDHM()
 {
   Int_t iNumEventsToProcess = 0;
   // Int_t iNumEventsToProcess = 2000000;
+  // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
   TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
   TString sInFileName = "AnalysisResults.root";
-  TString sOutFileName = "Skimmed.root";
+  TString sOutFileName = "Skimmed_HMwithPFPU.root";
 
   // ===============================================================================
 
@@ -144,10 +146,16 @@ void SkimForSPDHM()
     eventTree->GetEvent(i);
     hEventCounter->Fill("Input",1);
 
+    if(fRunNumber > 281892 && fRunNumber < 281916) continue;
+
     // trigger part
     Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
     Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
     Bool_t bIsConsist = CheckTriggerConsistency();
+    Bool_t bPFPU = PastFutureProtection();
+    // if(bPFPU) { printf("PFPU\n"); continue; }
+
+    bIsCVHMSH2 = bIsCVHMSH2 && !bPFPU;
 
     // number of online/oflline FAST-ORs
     iNumFOonline = fFiredChipMapFO->CountBits(400);
@@ -169,6 +177,50 @@ void SkimForSPDHM()
   for(Int_t iType(0); iType < iNumTypes; ++iType) { listOut[iType]->Write(Form("list_%s",sTypeLabels[iType].Data()),TObject::kSingleKey); }
 
   return;
+}
+// =====================================================================================================================
+Bool_t PastFutureProtection()
+{
+  // past-future protection
+
+  Bool_t bV0PFPileup = kFALSE;
+
+  Int_t fVIRBBAflags = 10;
+  Int_t fVIRBBCflags = 10;
+  Int_t fVIRBGAflags = 33;
+  Int_t fVIRBGCflags = 33;
+
+  Bool_t vir[21] = {0};
+
+  for (Int_t bc = 0; bc < 21; bc++)
+  {
+    UChar_t nBBA = 0;
+    UChar_t nBBC = 0;
+    UChar_t nBGA = 0;
+    UChar_t nBGC = 0;
+
+    if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
+    if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
+    if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
+    if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
+
+    vir[bc] |= nBBA>=fVIRBBAflags;
+    vir[bc] |= nBBC>=fVIRBBCflags;
+    vir[bc] |= nBGA>=fVIRBGAflags;
+    vir[bc] |= nBGC>=fVIRBGCflags;
+  }
+
+  Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
+  Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
+  for (Int_t bc=bcMin;bc<=bcMax;bc++)
+  {
+    if (bc==10) continue; // skip current bc
+    if (bc < 0) continue;
+    if (bc >20) continue;
+    if (vir[bc]) bV0PFPileup = kTRUE;
+  }
+
+  return bV0PFPileup;
 }
 // =====================================================================================================================
 Bool_t CheckTriggerConsistency()
@@ -209,28 +261,40 @@ void CreateHistos()
     listOut[iType] = new TList();
     TList* list = listOut[iType];
 
+    // 2D mult correlations
+    Int_t iFOonlineBins = 100; Int_t iFOonlineLow = 0; Int_t iFOonlineHigh = 1000;
+    Int_t iRefMultBins = 100; Int_t iRefMultLow = 0; Int_t iRefMultHigh = 2000;
+    Int_t iNtrkletsBins = 100; Int_t iNtrkletsLow = 0; Int_t iNtrkletsHigh = 4000;
+
+    if(iType == kCINT7_PhysSel || iType == kCVHMSH2_PhysSel || iType == kCVHMSH2)
+    {
+      iFOonlineBins = 200; iFOonlineLow = 0; iFOonlineHigh = 200;
+      iRefMultBins = 200;  iRefMultLow = 0;  iRefMultHigh = 200;
+      iNtrkletsBins = 200; iNtrkletsLow = 0; iNtrkletsHigh = 200;
+    }
+
     // Distributions
-    hDistNtrklets[iType] = new TH1D(Form("hDistNtrklets_%s",sLabel.Data()), Form("hDistNtrklets_%s; N_{tracklets}",sLabel.Data()), 100,0,4000);
+    hDistNtrklets[iType] = new TH1D(Form("hDistNtrklets_%s",sLabel.Data()), Form("hDistNtrklets_%s; N_{tracklets}",sLabel.Data()), iNtrkletsBins, iNtrkletsLow, iNtrkletsHigh);
     list->Add(hDistNtrklets[iType]);
     hDistNtrks[iType] = new TH1D(Form("hDistNtrks_%s",sLabel.Data()), Form("hDistNtrks_%s; N_{tracks};",sLabel.Data()), 100,0,5000);
     list->Add(hDistNtrks[iType]);
     hDistNtrks08pt[iType] = new TH1D(Form("hDistNtrks08pt_%s",sLabel.Data()), Form("hDistNtrks08pt_%s; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c});",sLabel.Data()), 100,0,1000);
     list->Add(hDistNtrks08pt[iType]);
-    hDistRefMult08[iType] = new TH1D(Form("hDistRefMult08_%s",sLabel.Data()), Form("hDistRefMult08_%s; RefMult08;",sLabel.Data()), 100,0,2000);
+    hDistRefMult08[iType] = new TH1D(Form("hDistRefMult08_%s",sLabel.Data()), Form("hDistRefMult08_%s; RefMult08;",sLabel.Data()), iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(hDistRefMult08[iType]);
     hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 100,0,1000);
     list->Add(hDistFOonline[iType]);
     hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 100,0,1000);
     list->Add(hDistFOoffline[iType]);
 
-    // 2D mult correlations
-    h2_FOonline_Ntrklets[iType] = new TH2D(Form("h2_FOonline_Ntrklets_%s",sLabel.Data()), Form("h2_FOonline_Ntrklets_%s; FO online; N_{tracklets}",sLabel.Data()), 100,0,1000, 100,0,4000);
+
+    h2_FOonline_Ntrklets[iType] = new TH2D(Form("h2_FOonline_Ntrklets_%s",sLabel.Data()), Form("h2_FOonline_Ntrklets_%s; FO online; N_{tracklets}",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, iNtrkletsBins, iNtrkletsLow, iNtrkletsHigh);
     list->Add(h2_FOonline_Ntrklets[iType]);
-    h2_FOonline_Ntrks[iType] = new TH2D(Form("h2_FOonline_Ntrks_%s",sLabel.Data()), Form("h2_FOonline_Ntrks_%s; FO online; N_{tracks}",sLabel.Data()), 100,0,1000, 100,0,5000);
+    h2_FOonline_Ntrks[iType] = new TH2D(Form("h2_FOonline_Ntrks_%s",sLabel.Data()), Form("h2_FOonline_Ntrks_%s; FO online; N_{tracks}",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 100,0,5000);
     list->Add(h2_FOonline_Ntrks[iType]);
-    h2_FOonline_Ntrks08pt[iType] = new TH2D(Form("h2_FOonline_Ntrks08pt_%s",sLabel.Data()), Form("h2_FOonline_Ntrks08pt_%s; FO online; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c})",sLabel.Data()), 100,0,1000, 100,0,1000);
+    h2_FOonline_Ntrks08pt[iType] = new TH2D(Form("h2_FOonline_Ntrks08pt_%s",sLabel.Data()), Form("h2_FOonline_Ntrks08pt_%s; FO online; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c})",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 100,0,1000);
     list->Add(h2_FOonline_Ntrks08pt[iType]);
-    h2_FOonline_RefMult08[iType] = new TH2D(Form("h2_FOonline_RefMult08_%s",sLabel.Data()), Form("h2_FOonline_RefMult08_%s; FO online; RefMult08",sLabel.Data()), 100,0,1000, 100,0,2000);
+    h2_FOonline_RefMult08[iType] = new TH2D(Form("h2_FOonline_RefMult08_%s",sLabel.Data()), Form("h2_FOonline_RefMult08_%s; FO online; RefMult08",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(h2_FOonline_RefMult08[iType]);
 
   }
