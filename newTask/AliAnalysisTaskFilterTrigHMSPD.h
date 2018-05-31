@@ -15,14 +15,7 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
 
     AliEventCuts        fEventCuts; /// Event cuts
   protected:
-
-    Short_t             GetPtBinIndex(Double_t pt); // return pt bin given the set binning
-
-    AliESDtrackCuts*     fESDtrackCuts; //!
-    Short_t             fTracksPtNumBins; // number of pt bins in binned pt dist.
-    Double_t             fTracksPtLowEdge; // low edge of pt (binned) dist
-    Double_t             fTracksPtUpEdge; // upper edge of pt (binned) dist
-    Double_t            fTrackEtaMax; // eta acceptance of charged tracks
+    AliESDtrackCuts*    fESDtrackCuts; //!
 
     TList*              fList; //! output TList
     TH1D*               fhEventCounter; //! Event counter
@@ -49,7 +42,6 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Int_t               fNumTracklets; // number of tracklets
     Int_t               fNumTracks; // number of tracks
     Int_t               fNumTracksRefMult08; // number of tracks in midrapidity |eta|<0.8 ala RefMult08 multiplicity estimator
-    Int_t               fNumTracksMultKatarina; // number of tracks in |eta|< 0.8 and 0.2 < pt < 3 GeV/c (ala Katarina Gajdosova expect for FB selection)
     TBits               fFiredChipMap; // map of fired chips (at least one cluster)
     TBits               fFiredChipMapFO; // map of fired FastOr chips
     Int_t               fNumITSCls[6]; // number of ITS clusters per layer
@@ -58,24 +50,20 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Float_t             fV0CTotMult; // total multiplicity in V0C
     UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
     UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
-    Float_t             fV0AMult[32]; // multiplicity in V0A cells
-    Float_t             fV0CMult[32];  // multiplicity in V0C cells
     Float_t             fV0ATime; // average time in V0A
     Float_t             fV0CTime; // average time in V0C
     Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
     Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
-    Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
-    Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
-    Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
-    Bool_t              fV0CTriggerBG[32]; // offline beam-gas flag in V0C cells
+    // Float_t             fV0AMult[32]; // multiplicity in V0A cells
+    // Float_t             fV0CMult[32];  // multiplicity in V0C cells
+    // Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
+    // Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
+    // Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
+    // Bool_t              fV0CTriggerBG[32]; // offline beam-gas flag in V0C cells
     UInt_t              fV0AFlagsBB; // Number of total online beam-beam flags in V0A
     UInt_t              fV0CFlagsBB; // Number of total online beam-beam flags in V0C
     UInt_t              fV0AFlagsBG; // Number of total online beam-gas flags in V0A
     UInt_t              fV0CFlagsBG; // Number of total online beam-gas flags in V0C
-    Bool_t              fV0FlagBB[64]; // online beam-beam flag in V0 (V0C 0-31, V0A 32-63) cells
-    Bool_t              fV0FlagBG[64]; // online beam-gas flag in V0 (V0C 0-31, V0A 32-63) cells
-    Bool_t              fV0FlagPFBB[64][21]; // beam-beam flag for V0 cells and clocks
-    Bool_t              fV0FlagPFBG[64][21]; // beam-gas flag for V0 cells and clocks
     Char_t              fV0ADecision; // final V0A decision
     Char_t              fV0CDecision;  // final V0C decision
     Double_t            fVtxX; // primary vertex x-coordinate
@@ -83,8 +71,8 @@ class AliAnalysisTaskFilterTrigHMSPD : public AliAnalysisTaskSE {
     Double_t            fVtxZ; // primary vertex z-coordinate
     Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
 
-    TArrayD*            fTracksPt; //! (binned) pt distribution of tracks
-
+  private:
+    Bool_t              PastFutureProtection(AliVVZERO* vzero);
 
   ClassDef(AliAnalysisTaskFilterTrigHMSPD,4);
 };

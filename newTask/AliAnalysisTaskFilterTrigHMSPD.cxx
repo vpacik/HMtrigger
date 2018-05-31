@@ -41,10 +41,6 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   AliAnalysisTaskSE(name),
   fEventCuts(),
   fESDtrackCuts(0x0),
-  fTracksPtNumBins(50),
-  fTracksPtLowEdge(0.0),
-  fTracksPtUpEdge(50.0),
-  fTrackEtaMax(0.8),
   fList(0x0),
   fhEventCounter(0x0),
   fTree(0x0),
@@ -66,7 +62,6 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fNumContrSPD(0),
   fNumTracklets(0),
   fNumTracksRefMult08(0),
-  fNumTracksMultKatarina(0),
   fFiredChipMap(),
   fFiredChipMapFO(),
   fNumITSCls(),
@@ -79,28 +74,23 @@ AliAnalysisTaskFilterTrigHMSPD::AliAnalysisTaskFilterTrigHMSPD(const char* name)
   fV0CTime(0),
   fV0ATriggerCharge(0),
   fV0CTriggerCharge(0),
-  fV0AMult(),
-  fV0CMult(),
   fV0AFlagsBB(0),
   fV0CFlagsBB(0),
   fV0AFlagsBG(0),
   fV0CFlagsBG(0),
-  fV0ATriggerBB(),
-  fV0ATriggerBG(),
-  fV0CTriggerBB(),
-  fV0CTriggerBG(),
-  fV0FlagBB(),
-  fV0FlagBG(),
-  fV0FlagPFBB(),
-  fV0FlagPFBG(),
+  // fV0AMult(),
+  // fV0CMult(),
+  // fV0ATriggerBB(),
+  // fV0ATriggerBG(),
+  // fV0CTriggerBB(),
+  // fV0CTriggerBG(),
   fV0ADecision(),
   fV0CDecision(),
   fVtxX(0),
   fVtxY(0),
   fVtxZ(0),
   fVtxTPC(kFALSE),
-  fNumTracks(-1),
-  fTracksPt(0x0)
+  fNumTracks(-1)
 {
   DefineInput(0,TChain::Class());
   DefineOutput(1,TList::Class());
@@ -116,8 +106,6 @@ AliAnalysisTaskFilterTrigHMSPD::~AliAnalysisTaskFilterTrigHMSPD()
 //-----------------------------------------------------------------------------
 void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
 {
-  fTracksPt = new TArrayD(fTracksPtNumBins);
-
   fList = new TList();
   fList->SetOwner(kTRUE);
   fhEventCounter = new TH1D("fhEventCounter","fhEventCounter",1,0,1);
@@ -159,20 +147,16 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fV0CTriggerCharge",&fV0CTriggerCharge);
   fTree->Branch("fV0ATime",&fV0ATime);
   fTree->Branch("fV0CTime",&fV0CTime);
-  fTree->Branch("fV0AMult",&fV0AMult,"fV0AMult[32]/F");
-  fTree->Branch("fV0CMult",&fV0CMult,"fV0CMult[32]/F");
-  fTree->Branch("fV0ATriggerBB",&fV0ATriggerBB,"fV0ATriggerBB[32]/O");
-  fTree->Branch("fV0ATriggerBG",&fV0ATriggerBG,"fV0ATriggerBG[32]/O");
-  fTree->Branch("fV0CTriggerBG",&fV0ATriggerBG,"fV0ATriggerBG[32]/O");
-  fTree->Branch("fV0CTriggerBB",&fV0ATriggerBB,"fV0ATriggerBB[32]/O");
+  // fTree->Branch("fV0AMult",&fV0AMult,"fV0AMult[32]/F");
+  // fTree->Branch("fV0CMult",&fV0CMult,"fV0CMult[32]/F");
+  // fTree->Branch("fV0ATriggerBB",&fV0ATriggerBB,"fV0ATriggerBB[32]/O");
+  // fTree->Branch("fV0ATriggerBG",&fV0ATriggerBG,"fV0ATriggerBG[32]/O");
+  // fTree->Branch("fV0CTriggerBG",&fV0ATriggerBG,"fV0ATriggerBG[32]/O");
+  // fTree->Branch("fV0CTriggerBB",&fV0ATriggerBB,"fV0ATriggerBB[32]/O");
   fTree->Branch("fV0AFlagsBB",&fV0AFlagsBB);
   fTree->Branch("fV0CFlagsBB",&fV0CFlagsBB);
   fTree->Branch("fV0AFlagsBG",&fV0AFlagsBG);
   fTree->Branch("fV0CFlagsBG",&fV0CFlagsBG);
-  fTree->Branch("fV0FlagBB",&fV0FlagBB,"fV0FlagBB[64]/O");
-  fTree->Branch("fV0FlagBG",&fV0FlagBG,"fV0FlagBG[64]/O");
-  fTree->Branch("fV0FlagPFBB",&fV0FlagPFBB,"fV0FlagPFBB[64][21]/O");
-  fTree->Branch("fV0FlagPFBG",&fV0FlagPFBG,"fV0FlagPFBG[64][21]/O");
   fTree->Branch("fV0ADecision",&fV0ADecision);
   fTree->Branch("fV0CDecision",&fV0CDecision);
   fTree->Branch("fVtxX",&fVtxX);
@@ -182,8 +166,6 @@ void AliAnalysisTaskFilterTrigHMSPD::UserCreateOutputObjects()
   fTree->Branch("fNumTracklets",&fNumTracklets);
   fTree->Branch("fNumTracks",&fNumTracks);
   fTree->Branch("fNumTracksRefMult08",&fNumTracksRefMult08);
-  fTree->Branch("fNumTracksMultKatarina",&fNumTracksMultKatarina);
-  fTree->Branch("fTracksPt",&fTracksPt);
 
   PostData(1,fList);
   PostData(2,fTree);
@@ -306,72 +288,19 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   fV0ATime = vzero->GetV0ATime();
   fV0CTime = vzero->GetV0CTime();
 
-  for (Int_t i = 0; i < 32; i++)
-  {
-    fV0AMult[i] = vzero->GetMultiplicityV0A(i);
-    fV0CMult[i] = vzero->GetMultiplicityV0C(i);
-    // offline BB/BG
-    fV0ATriggerBB[i] = vzero->BBTriggerV0A(i);
-    fV0ATriggerBG[i] = vzero->BGTriggerV0A(i);
-    fV0CTriggerBB[i] = vzero->BBTriggerV0C(i);
-    fV0CTriggerBG[i] = vzero->BGTriggerV0C(i);
-  }
+  // for (Int_t i = 0; i < 32; i++)
+  // {
+  //  fV0AMult[i] = vzero->GetMultiplicityV0A(i);
+  //  fV0CMult[i] = vzero->GetMultiplicityV0C(i);
+  //  // offline BB/BG
+  //  fV0ATriggerBB[i] = vzero->BBTriggerV0A(i);
+  //  fV0ATriggerBG[i] = vzero->BGTriggerV0A(i);
+  //  fV0CTriggerBB[i] = vzero->BBTriggerV0C(i);
+  //  fV0CTriggerBG[i] = vzero->BGTriggerV0C(i);
+  // }
 
   // online BB/BG // past-future protection
-  fV0PastFuturePileUp = kFALSE;
-  fV0AFlagsBB = 0; fV0CFlagsBB = 0; fV0AFlagsBG = 0; fV0CFlagsBG = 0;
-  Bool_t vir[21] = {0};
-
-  for (Int_t i = 0; i < 64; i++)
-  {
-    fV0FlagBB[i] = vzero->GetBBFlag(i);
-    fV0FlagBG[i] = vzero->GetBGFlag(i);
-
-    if (i<32) { fV0CFlagsBB += fV0FlagBB[i]; fV0CFlagsBG += fV0FlagBG[i]; }
-    else { fV0AFlagsBB += fV0FlagBB[i]; fV0AFlagsBG += fV0FlagBG[i]; }
-
-    for (Int_t bc = 0; bc < 21; bc++)
-    {
-      fV0FlagPFBB[i][bc] = vzero->GetPFBBFlag(i,bc);
-      fV0FlagPFBG[i][bc] = vzero->GetPFBGFlag(i,bc);
-    }
-  }
-
-
-  for (Int_t bc = 0; bc < 21; bc++)
-  {
-    UChar_t nBBA = 0;
-    UChar_t nBBC = 0;
-    UChar_t nBGA = 0;
-    UChar_t nBGC = 0;
-
-    Int_t fVIRBBAflags = 10;
-    Int_t fVIRBBCflags = 10;
-    Int_t fVIRBGAflags = 33;
-    Int_t fVIRBGCflags = 33;
-
-    if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
-    if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
-    if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
-    if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
-
-    vir[bc] |= nBBA>=fVIRBBAflags;
-    vir[bc] |= nBBC>=fVIRBBCflags;
-    vir[bc] |= nBGA>=fVIRBGAflags;
-    vir[bc] |= nBGC>=fVIRBGCflags;
-  }
-
-
-  Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
-  Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
-  for (Int_t bc = bcMin; bc <= bcMax; bc++)
-  {
-    if (bc==10) continue; // skip current bc
-    if (bc < 0) continue;
-    if (bc >20) continue;
-    if (vir[bc]) fV0PastFuturePileUp = kTRUE;
-  }
-
+  fV0PastFuturePileUp = PastFutureProtection(vzero);
   fV0ADecision = vzero->GetV0ADecision();
   fV0CDecision = vzero->GetV0CDecision();
 
@@ -389,34 +318,8 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
   if(fPhysSelDecision) { fhEventCounter->Fill("PhysicsSelection",1); }
   if(fEventCutsPassed) { fhEventCounter->Fill("EventCuts",1); }
 
-
   // RefMult08 mimicing
   fNumTracksRefMult08 = fESDtrackCuts->GetReferenceMultiplicity(dynamic_cast<AliESDEvent*>(fInputEvent), AliESDtrackCuts::kTrackletsITSTPC, 0.8);
-  fNumTracksMultKatarina = 0;
-
-  fTracksPt->Reset();
-  Short_t index = -1;
-  AliESDtrack* track = 0x0;
-
-  fNumTracks = fInputEvent->GetNumberOfTracks();
-  for(Int_t i(0); i < fNumTracks; i++)
-  {
-    track = (AliESDtrack*) fInputEvent->GetTrack(i);
-    if(!track) { continue; }
-
-    Double_t dEta = track->Eta();
-    if( TMath::Abs(dEta) > fTrackEtaMax ) { continue; }
-
-    Double_t dPt = track->Pt();
-    if(dPt >= 0.3 && dPt <= 3.0) { fNumTracksMultKatarina++; }
-    index = GetPtBinIndex(dPt);
-    if(index == -1) continue;
-
-    fTracksPt->AddAt(fTracksPt->At(index)+1,index);
-
-    //EXAMPLE: AliUpcParticle* part = new ((*fTracks)[fTracks->GetEntriesFast()]) Ali(pt,eta,phi,charge,label,21);
-    // new( (*fTracks)[i] ) AliESDtrack(track); // working
-  }
 
   fTree->Fill();
   PostData(1,fList);
@@ -425,12 +328,63 @@ void AliAnalysisTaskFilterTrigHMSPD::UserExec(Option_t *)
 //-----------------------------------------------------------------------------
 void AliAnalysisTaskFilterTrigHMSPD::Terminate(Option_t *)
 {
-
 }
 //-----------------------------------------------------------------------------
-Short_t AliAnalysisTaskFilterTrigHMSPD::GetPtBinIndex(Double_t pt)
-{
-  if( pt < fTracksPtLowEdge || pt >= fTracksPtUpEdge ) return -1;
-  Double_t dBinWidth = (fTracksPtUpEdge - fTracksPtLowEdge)/fTracksPtNumBins;
-  return (Short_t) (pt / dBinWidth);
-}
+ Bool_t AliAnalysisTaskFilterTrigHMSPD::PastFutureProtection(AliVVZERO* vzero)
+ {
+   Bool_t bIsPastFuture = kFALSE;
+
+   Bool_t vir[21];
+   Bool_t bV0FlagPFBB[64][21];
+   Bool_t bV0FlagPFBG[64][21];
+
+   fV0AFlagsBB = 0; fV0CFlagsBB = 0; fV0AFlagsBG = 0; fV0CFlagsBG = 0;
+   for (Int_t i = 0; i < 64; i++)
+   {
+     // Counting total number of BB/BG flags in V0A/V0C
+     if(i < 32) { fV0CFlagsBB += vzero->GetBBFlag(i); fV0CFlagsBG += vzero->GetBGFlag(i); }
+     else { fV0AFlagsBB += vzero->GetBBFlag(i); fV0AFlagsBG += vzero->GetBGFlag(i); }
+
+     // Filling the BG/BB flags for each V0 channel & bunch crossing
+     for (Int_t bc = 0; bc < 21; bc++)
+     {
+       bV0FlagPFBB[i][bc] = vzero->GetPFBBFlag(i,bc);
+       bV0FlagPFBG[i][bc] = vzero->GetPFBGFlag(i,bc);
+     }
+   }
+
+   Int_t iVIRBBAflags = 10;
+   Int_t iVIRBBCflags = 10;
+   Int_t iVIRBGAflags = 33;
+   Int_t iVIRBGCflags = 33;
+
+   for (Int_t bc = 0; bc < 21; bc++)
+   {
+     UChar_t nBBA = 0;
+     UChar_t nBBC = 0;
+     UChar_t nBGA = 0;
+     UChar_t nBGC = 0;
+
+     if (iVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += bV0FlagPFBB[j+32][bc];
+     if (iVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += bV0FlagPFBB[j][bc];
+     if (iVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += bV0FlagPFBG[j+32][bc];
+     if (iVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += bV0FlagPFBG[j][bc];
+
+     vir[bc] |= nBBA >= iVIRBBAflags;
+     vir[bc] |= nBBC >= iVIRBBCflags;
+     vir[bc] |= nBGA >= iVIRBGAflags;
+     vir[bc] |= nBGC >= iVIRBGCflags;
+   }
+
+   Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
+   Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
+   for (Int_t bc = bcMin; bc <= bcMax; bc++)
+   {
+     if (bc==10) continue; // skip current bc
+     if (bc < 0) continue;
+     if (bc >20) continue;
+     if (vir[bc]) { bIsPastFuture = kTRUE; }
+   }
+
+   return bIsPastFuture;
+ }
