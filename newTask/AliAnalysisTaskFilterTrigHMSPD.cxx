@@ -342,7 +342,7 @@ void AliAnalysisTaskFilterTrigHMSPD::Terminate(Option_t *)
  {
    Bool_t bIsPastFuture = kFALSE;
 
-   Bool_t vir[21];
+   Bool_t vir[21] = {0};
    Bool_t bV0FlagPFBB[64][21];
    Bool_t bV0FlagPFBG[64][21];
 
