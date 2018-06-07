@@ -72,14 +72,17 @@ enum eEventType { kAll = 0, kCINT7, kCVHMSH2, kCINT7_PhysSel, kCVHMSH2_PhysSel};
 
 TList* listOut[iNumTypes];
 
-
 TH1D* hEventCounter;
+TH1D* hPFPUCounter;
+TH2D* hEventPerRunCounter;
 
+TH1D* hTriggerClasses[iNumTypes];
 TH1D* hDistNtrklets[iNumTypes];
 TH1D* hDistNtrks[iNumTypes];
 TH1D* hDistRefMult08[iNumTypes];
 TH1D* hDistFOonline[iNumTypes];
 TH1D* hDistFOoffline[iNumTypes];
+TH2D* hDistFOofflinePerRun[iNumTypes];
 
 // 2D mult correlations
 TH2D* h2_FOonline_Ntrklets[iNumTypes];
@@ -94,16 +97,21 @@ Bool_t LoadTTreeVars();
 void SkimForSPDHM()
 {
   Int_t iNumEventsToProcess = 0;
-  // Int_t iNumEventsToProcess = 2000000;
+  // Int_t iNumEventsToProcess = 200000;
+
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/17o/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/16k-merged/";
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
   TString sInFileName = "AnalysisResults.root";
+  // TString sOutFileName = "Skimmed_noPFPU.root";
   TString sOutFileName = "Skimmed_HMwithPFPU.root";
+  // TString sOutFileName = "Skimmed_test.root";
+  // TString sOutFileName = "Skimmed_987b_SPD2.root";
+  // TString sOutFileName = "Skimmed_2556b.root";
 
   // ===============================================================================
-
-  CreateHistos();
 
   // openning input & output file
   TString sInputFile = sPath + sInFileName;
@@ -114,6 +122,8 @@ void SkimForSPDHM()
 
   TFile* fInputFile = new TFile(sInputFile.Data(),"READ");
   if(!fInputFile->IsOpen()) { printf(" ERROR: fInputFile not open!\n"); return; }
+
+  CreateHistos();
 
   // loading TTree variables
   fInputFile->cd("FilterTrig");
@@ -139,15 +149,34 @@ void SkimForSPDHM()
     if( (i % 100000) == 0) printf("=== Procesed %d out of %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
     hEventCounter->Fill("Input",1);
+    hEventPerRunCounter->Fill(Form("%d",fRunNumber),"Input",1);
 
-    if(fRunNumber > 281892 && fRunNumber < 281916) continue;
+    // pp2018_Rare_987b
+    // if(fRunNumber < 287323) continue;
+
+    // pp2018_Rare_2556b
+    // if(fRunNumber > 287283) continue;
 
     // trigger part
     Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
     Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
     Bool_t bIsConsist = CheckTriggerConsistency();
+    Bool_t bPFPUFilled = fV0PastFutureFilled;
     Bool_t bPFPU = fV0PastFuturePileUp;
-    // if(bPFPU) { printf("PFPU\n"); continue; }
+
+    if(bIsCINT7)
+    {
+      hEventPerRunCounter->Fill(Form("%d",fRunNumber),"CINT7-B",1);
+      if(fClassesFired->String().Contains("CENTNOTRD")) { hTriggerClasses[kCINT7]->Fill("CENTNOTRD",1); }
+      else if(fClassesFired->String().Contains("CENT")) { hTriggerClasses[kCINT7]->Fill("CENT",1); }
+      if(fClassesFired->String().Contains("MUFAST")) hTriggerClasses[kCINT7]->Fill("MUFAST",1);
+    }
+    if(bIsCVHMSH2)
+    {
+      hPFPUCounter->Fill("CVHMSH2-B",1);
+      hEventPerRunCounter->Fill(Form("%d",fRunNumber),"CVHMSH2",1);
+      if(bPFPU && bPFPUFilled) { hPFPUCounter->Fill("CVHMSH2 && PFPU && filled",1); }
+    }
 
     bIsCVHMSH2 = bIsCVHMSH2 && !bPFPU;
 
@@ -168,6 +197,9 @@ void SkimForSPDHM()
   }
 
   fOutputFile->cd();
+  hEventCounter->Write();
+  hEventPerRunCounter->Write();
+  hPFPUCounter->Write();
   for(Int_t iType(0); iType < iNumTypes; ++iType) { listOut[iType]->Write(Form("list_%s",sTypeLabels[iType].Data()),TObject::kSingleKey); }
 
   return;
@@ -203,6 +235,9 @@ Bool_t CheckTriggerConsistency()
 void CreateHistos()
 {
   hEventCounter = new TH1D("hEventCounter", "hEventCounter", 1,0,1);
+  hEventPerRunCounter = new TH2D("hEventPerRunCounter", "hEventPerRunCounter", 1,0,1, 1,0,1);
+  hPFPUCounter = new TH1D("hPFPUCounter", "hPFPUCounter", 1,0,1);
+
 
   for(Int_t iType(0); iType < iNumTypes; ++iType)
   {
@@ -223,16 +258,21 @@ void CreateHistos()
       iNtrkletsBins = 200; iNtrkletsLow = 0; iNtrkletsHigh = 200;
     }
 
+    // trigger classes
+    hTriggerClasses[iType] = new TH1D(Form("hTriggerClasses_%s",sLabel.Data()), Form("hTriggerClasses_%s;",sLabel.Data()), 1,0,1);
+    list->Add(hTriggerClasses[iType]);
     // Distributions
+    hDistFOofflinePerRun[iType] = new TH2D(Form("hDistFOofflinePerRun_%s",sLabel.Data()), Form("hDistFOofflinePerRun%s; FO online; Run",sLabel.Data()), 500,0,1000, 1,0,1);
+    list->Add(hDistFOofflinePerRun[iType]);
     hDistNtrklets[iType] = new TH1D(Form("hDistNtrklets_%s",sLabel.Data()), Form("hDistNtrklets_%s; N_{tracklets}",sLabel.Data()), iNtrkletsBins, iNtrkletsLow, iNtrkletsHigh);
     list->Add(hDistNtrklets[iType]);
     hDistNtrks[iType] = new TH1D(Form("hDistNtrks_%s",sLabel.Data()), Form("hDistNtrks_%s; N_{tracks};",sLabel.Data()), 100,0,5000);
     list->Add(hDistNtrks[iType]);
     hDistRefMult08[iType] = new TH1D(Form("hDistRefMult08_%s",sLabel.Data()), Form("hDistRefMult08_%s; RefMult08;",sLabel.Data()), iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(hDistRefMult08[iType]);
-    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 100,0,1000);
+    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 1000,0,1000);
     list->Add(hDistFOonline[iType]);
-    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 100,0,1000);
+    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 500,0,1000);
     list->Add(hDistFOoffline[iType]);
 
 
@@ -256,6 +296,8 @@ void FillCommonHistos(eEventType iType)
 
   hDistFOonline[iType]->Fill(iNumFOonline);
   hDistFOoffline[iType]->Fill(iNumFOoffline);
+
+  hDistFOofflinePerRun[iType]->Fill(iNumFOoffline, Form("%d",fRunNumber), 1);
 
   // 2D mult correlations
   h2_FOonline_Ntrklets[iType]->Fill(iNumFOonline,fNumTracklets);

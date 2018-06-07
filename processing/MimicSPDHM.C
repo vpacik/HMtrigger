@@ -19,9 +19,9 @@ const Int_t iNumTypes = 5;
 enum eEventType { kAll = 0, kCINT7, kCVHMSH2, kCINT7_PhysSel, kCVHMSH2_PhysSel};
 TString sTypeLabels[iNumTypes] = {"ALL", "CINT7", "CVHMSH2", "CINT7_PhysSel", "CVHMSH2_PhysSel"};
 
-const Int_t iNumMult = 4;
-enum eMult { kNtrklets=0, kNtrks, kNtrks08pt, kRefMult08};
-TString sMultLabels[iNumMult] = {"Ntrklets", "Ntrks", "Ntrks08pt", "RefMult08"};
+const Int_t iNumMult = 3;
+enum eMult { kNtrklets=0, kNtrks, kRefMult08};
+TString sMultLabels[iNumMult] = {"Ntrklets", "Ntrks", "RefMult08"};
 
 Int_t iCutOFonline[] = {-1,70,75,80,85,90,95,100,105,110,115,120};
 Double_t dCutOFonline[] = {-1,70,75,80,85,90,95,100,105,110,115,120};
@@ -45,7 +45,8 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 void MimicSPDHM()
 {
-  TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+  // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
   TString sInFileName = "Skimmed_HMwithPFPU.root";
   TString sOutputPath = sPath + "/out_HWwithPFPU/";
