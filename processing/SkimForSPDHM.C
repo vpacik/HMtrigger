@@ -82,6 +82,7 @@ TH1D* hDistNtrks[iNumTypes];
 TH1D* hDistRefMult08[iNumTypes];
 TH1D* hDistFOonline[iNumTypes];
 TH1D* hDistFOoffline[iNumTypes];
+TH2D* hDistFOonlinePerRun[iNumTypes];
 TH2D* hDistFOofflinePerRun[iNumTypes];
 
 // 2D mult correlations
@@ -97,18 +98,21 @@ Bool_t LoadTTreeVars();
 void SkimForSPDHM()
 {
   Int_t iNumEventsToProcess = 0;
+  // Int_t iNumEventsToProcess = 1000000;
   // Int_t iNumEventsToProcess = 200000;
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/17o/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/16k-merged/";
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
   TString sInFileName = "AnalysisResults.root";
   // TString sOutFileName = "Skimmed_noPFPU.root";
+  // TString sOutFileName = "Skimmed_HMwithPFPU_wo287064.root";
   TString sOutFileName = "Skimmed_HMwithPFPU.root";
   // TString sOutFileName = "Skimmed_test.root";
-  // TString sOutFileName = "Skimmed_987b_SPD2.root";
+  // TString sOutFileName = "Skimmed_987b.root";
   // TString sOutFileName = "Skimmed_2556b.root";
 
   // ===============================================================================
@@ -151,6 +155,9 @@ void SkimForSPDHM()
     hEventCounter->Fill("Input",1);
     hEventPerRunCounter->Fill(Form("%d",fRunNumber),"Input",1);
 
+    // issue in 18f with OFO bellow 85
+    if(fRunNumber == 287064) { continue; }
+
     // pp2018_Rare_987b
     // if(fRunNumber < 287323) continue;
 
@@ -158,7 +165,7 @@ void SkimForSPDHM()
     // if(fRunNumber > 287283) continue;
 
     // trigger part
-    Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
+    Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B-NOPF-CENT");
     Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
     Bool_t bIsConsist = CheckTriggerConsistency();
     Bool_t bPFPUFilled = fV0PastFutureFilled;
@@ -251,9 +258,9 @@ void CreateHistos()
     Int_t iRefMultBins = 100; Int_t iRefMultLow = 0; Int_t iRefMultHigh = 2000;
     Int_t iNtrkletsBins = 100; Int_t iNtrkletsLow = 0; Int_t iNtrkletsHigh = 4000;
 
-    if(iType == kCINT7_PhysSel || iType == kCVHMSH2_PhysSel || iType == kCVHMSH2)
+    if(iType != kCINT7)
     {
-      iFOonlineBins = 200; iFOonlineLow = 0; iFOonlineHigh = 200;
+      iFOonlineBins = 800; iFOonlineLow = 0; iFOonlineHigh = 800;
       iRefMultBins = 200;  iRefMultLow = 0;  iRefMultHigh = 200;
       iNtrkletsBins = 200; iNtrkletsLow = 0; iNtrkletsHigh = 200;
     }
@@ -262,7 +269,9 @@ void CreateHistos()
     hTriggerClasses[iType] = new TH1D(Form("hTriggerClasses_%s",sLabel.Data()), Form("hTriggerClasses_%s;",sLabel.Data()), 1,0,1);
     list->Add(hTriggerClasses[iType]);
     // Distributions
-    hDistFOofflinePerRun[iType] = new TH2D(Form("hDistFOofflinePerRun_%s",sLabel.Data()), Form("hDistFOofflinePerRun%s; FO online; Run",sLabel.Data()), 500,0,1000, 1,0,1);
+    hDistFOonlinePerRun[iType] = new TH2D(Form("hDistFOonlinePerRun_%s",sLabel.Data()), Form("hDistFOonlinePerRun%s; FO online; Run",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 1,0,1);
+    list->Add(hDistFOonlinePerRun[iType]);
+    hDistFOofflinePerRun[iType] = new TH2D(Form("hDistFOofflinePerRun_%s",sLabel.Data()), Form("hDistFOofflinePerRun%s; FO offline; Run",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 1,0,1);
     list->Add(hDistFOofflinePerRun[iType]);
     hDistNtrklets[iType] = new TH1D(Form("hDistNtrklets_%s",sLabel.Data()), Form("hDistNtrklets_%s; N_{tracklets}",sLabel.Data()), iNtrkletsBins, iNtrkletsLow, iNtrkletsHigh);
     list->Add(hDistNtrklets[iType]);
@@ -270,9 +279,9 @@ void CreateHistos()
     list->Add(hDistNtrks[iType]);
     hDistRefMult08[iType] = new TH1D(Form("hDistRefMult08_%s",sLabel.Data()), Form("hDistRefMult08_%s; RefMult08;",sLabel.Data()), iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(hDistRefMult08[iType]);
-    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 1000,0,1000);
+    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh);
     list->Add(hDistFOonline[iType]);
-    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 500,0,1000);
+    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh);
     list->Add(hDistFOoffline[iType]);
 
 
@@ -297,6 +306,7 @@ void FillCommonHistos(eEventType iType)
   hDistFOonline[iType]->Fill(iNumFOonline);
   hDistFOoffline[iType]->Fill(iNumFOoffline);
 
+  hDistFOonlinePerRun[iType]->Fill(iNumFOonline, Form("%d",fRunNumber), 1);
   hDistFOofflinePerRun[iType]->Fill(iNumFOoffline, Form("%d",fRunNumber), 1);
 
   // 2D mult correlations
