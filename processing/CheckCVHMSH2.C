@@ -48,7 +48,10 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 void CheckCVHMSH2()
 {
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1/";
+  TString sInFileName = "Skimmed.root";
+  TString sOutputPath = sPath + "/check/";
+
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
   // TString sInFileName = "Skimmed_HMwithPFPU.root";
   // TString sOutputPath = sPath + "/check_HWwithPFPU/";
@@ -58,11 +61,11 @@ void CheckCVHMSH2()
 
   // TString sInFileName = "Skimmed_987b.root";
   // TString sOutputPath = sPath + "/check_987b/";
-  TString sInFileName = "Skimmed_2556b.root";
-  TString sOutputPath = sPath + "/check_2556b/";
+  // TString sInFileName = "Skimmed_2556b.root";
+  // TString sOutputPath = sPath + "/check_2556b/";
 
   // Double_t dDownscaling = 1.0;
-  Double_t dDownscaling = 0.28/0.0027;
+  Double_t dDownscaling = 0.295/0.0027;
 
 
   // ===============================================================================
@@ -96,6 +99,9 @@ void CheckCVHMSH2()
         // Int_t iColor = gStyle->GetColorPalette(idx);
         Int_t iColor = colorHM;
         hDistMult[iMult][iType][iCut]->SetLineColor(iColor);
+        hDistMult[iMult][iType][iCut]->SetMarkerColor(iColor);
+        hDistMult[iMult][iType][iCut]->SetMarkerStyle(kFullCircle);
+        hDistMult[iMult][iType][iCut]->SetMarkerSize(0.4);
         if(iType == kCVHMSH2 || iType == kCVHMSH2_PhysSel) { hDistMult[iMult][iType][iCut]->Scale(1.0/dDownscaling); }
       }
     }
@@ -179,7 +185,7 @@ void CheckCVHMSH2()
 
       hEff[iMult][iType][iCut]->Draw("same");
     }
-    line->DrawLine(0,0.95,140,0.95);
+    line->DrawLine(0,0.95,120,0.95);
     legThrs->Draw();
     canEff->cd(3);
     TH1* frame_canEff_3 = (TH1*) gPad->DrawFrame(iCutOFonline[0]-5,0.0,iCutOFonline[iNumCutOFonline-1]+5,0.50);
@@ -240,8 +246,10 @@ void CheckCVHMSH2()
 
       canPurity->cd(1);
       hDistMult[iMult][kCVHMSH2][iCut]->SetLineColor(colorMB);
+      hDistMult[iMult][kCVHMSH2][iCut]->SetMarkerColor(colorMB);
       hDistMult[iMult][kCVHMSH2][iCut]->Draw("same");
       hDistMult[iMult][kCVHMSH2_PhysSel][iCut]->SetLineColor(colorHM);
+      hDistMult[iMult][kCVHMSH2_PhysSel][iCut]->SetMarkerColor(colorHM);
       hDistMult[iMult][kCVHMSH2_PhysSel][iCut]->Draw("same");
 
       canPurity->cd(2);

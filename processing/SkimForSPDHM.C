@@ -104,13 +104,15 @@ void SkimForSPDHM()
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/17o/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/16k-merged/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1/";
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
   TString sInFileName = "AnalysisResults.root";
+  TString sOutFileName = "Skimmed.root";
   // TString sOutFileName = "Skimmed_noPFPU.root";
   // TString sOutFileName = "Skimmed_HMwithPFPU_wo287064.root";
-  TString sOutFileName = "Skimmed_HMwithPFPU.root";
+  // TString sOutFileName = "Skimmed_HMwithPFPU.root";
   // TString sOutFileName = "Skimmed_test.root";
   // TString sOutFileName = "Skimmed_987b.root";
   // TString sOutFileName = "Skimmed_2556b.root";
@@ -157,6 +159,9 @@ void SkimForSPDHM()
 
     // issue in 18f with OFO bellow 85
     if(fRunNumber == 287064) { continue; }
+
+    // trigger setting: pp2018_HighRateTest (v9) - not relevant
+    if(fRunNumber == 287616) { continue; }
 
     // pp2018_Rare_987b
     // if(fRunNumber < 287323) continue;
