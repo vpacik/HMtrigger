@@ -83,6 +83,31 @@ void CheckCVHMSH2()
   Int_t nPnt  = iNumCutOFonline;
   Int_t nnCol = gStyle->GetNumberOfColors();
 
+
+  // ### Multiplicity vs OFO correlations
+  TLine* line_cor_unity = new TLine();
+  line_cor_unity->SetLineColor(kOrange+7);
+  line_cor_unity->SetLineWidth(1.0);
+
+  for(Int_t iMult(0); iMult < iNumMult; ++iMult)
+  {
+    TCanvas* canCorr = new TCanvas("canCorr", "canCorr", 1200,500);
+    canCorr->Divide(2,1);
+    canCorr->cd(1);
+    gPad->SetLogz();
+    h2_FOonline[iMult][kCVHMSH2]->GetXaxis()->SetRangeUser(0,250);
+    h2_FOonline[iMult][kCVHMSH2]->SetStats(0);
+    h2_FOonline[iMult][kCVHMSH2]->Draw("colz");
+    line_cor_unity->DrawLine(0,0,200,200);
+    canCorr->cd(2);
+    gPad->SetLogz();
+    h2_FOonline[iMult][kCVHMSH2_PhysSel]->GetXaxis()->SetRangeUser(0,250);
+    h2_FOonline[iMult][kCVHMSH2_PhysSel]->SetStats(0);
+    h2_FOonline[iMult][kCVHMSH2_PhysSel]->Draw("colz");
+    line_cor_unity->DrawLine(0,0,200,200);
+    canCorr->SaveAs(Form("%s/corr_%s.pdf",sOutputPath.Data(), sMultLabels[iMult].Data()),"pdf");
+  }
+
   // ### Slicing distribution based on OFO cut
   printf("INFO : Slicing the distributions based on OFO threshold\n");
   TH1D* hDistMult[iNumMult][iNumTypes][iNumCutOFonline];
@@ -262,10 +287,6 @@ void CheckCVHMSH2()
     canPurity->SaveAs(Form("%s/purity_%s_%s.pdf",sOutputPath.Data(), "CVHMSH2", sMultLabels[iMult].Data()),"pdf");
   }
 
-
-
-
-
   // ### Calculating rejection factors
   printf("INFO : Calculating rejection factors\n");
   TH1D* hRejectionFactor = new TH1D("hRejectionFactor","hRejectionFactor",iNumCutOFonline-1,dCutOFonline);
@@ -287,7 +308,7 @@ void CheckCVHMSH2()
   for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
   {
     iNumEvents_CVHSH2[iCut] = hDistMult[iMult][iType][iCut]->GetEntries();
-    dRejectionFactor[iCut] = ((Double_t) iNumEvents_CVHSH2[iCut]) / iNumEvents_CINT7;
+    dRejectionFactor[iCut] = ((Double_t) iNumEvents_CVHSH2[iCut]) / iNumEvents_CINT7 / dDownscaling;
     printf("%d: %d | rejection %f \n",iCutOFonline[iCut], iNumEvents_CVHSH2[iCut], dRejectionFactor[iCut]);
 
     // hRejectionFactor->SetBinContent(iCut+1, dRejectionFactor[iCut]);
