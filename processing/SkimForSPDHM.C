@@ -105,11 +105,12 @@ void SkimForSPDHM()
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/16k-merged/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
   TString sInFileName = "AnalysisResults.root";
-  TString sOutFileName = "Skimmed.root";
+  TString sOutFileName = "Skimmed_fishyexcl.root";
+  // TString sOutFileName = "Skimmed.root";
   // TString sOutFileName = "Skimmed_noPFPU.root";
   // TString sOutFileName = "Skimmed_HMwithPFPU_wo287064.root";
   // TString sOutFileName = "Skimmed_HMwithPFPU.root";
@@ -168,6 +169,10 @@ void SkimForSPDHM()
 
     // pp2018_Rare_2556b
     // if(fRunNumber > 287283) continue;
+
+    // 18m/muon_calo : fishy runs with offline FO shifted
+    if(fRunNumber >= 290611 && fRunNumber <= 290615) { continue; }
+    if(fRunNumber == 291262) { continue; }
 
     // trigger part
     Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B-NOPF-CENT");

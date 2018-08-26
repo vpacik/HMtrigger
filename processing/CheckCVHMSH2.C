@@ -48,9 +48,9 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 void CheckCVHMSH2()
 {
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1/";
-  TString sInFileName = "Skimmed.root";
-  TString sOutputPath = sPath + "/check/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
+  TString sInFileName = "Skimmed_fishyexcl.root";
+  TString sOutputPath = sPath + "/check_fishyexcl/";
 
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
   // TString sInFileName = "Skimmed_HMwithPFPU.root";
@@ -65,7 +65,8 @@ void CheckCVHMSH2()
   // TString sOutputPath = sPath + "/check_2556b/";
 
   // Double_t dDownscaling = 1.0;
-  Double_t dDownscaling = 0.295/0.0027;
+  // Double_t dDownscaling = 0.295/0.00203;
+  Double_t dDownscaling = 0.295/0.00245;
 
 
   // ===============================================================================
