@@ -36,6 +36,5 @@
 ### Directories ###
 /etc/*
 /original_bk/*
-/TriggerStudies/*
-/upcTree/*
-/newTask/running/*
+/running/*
+/forPR/*

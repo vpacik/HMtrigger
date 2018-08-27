@@ -16,7 +16,6 @@ TObjString*         fClassesFired = 0x0; // list of fired trigger classes
 UInt_t              fPhysSelDecision; // AliPhysicsSelection decision
 Bool_t              fPhysSelPassed; // AliPhysicsSelection decision (pass/reject)
 Bool_t              fEventCutsPassed; // AliEventCuts selection decision (pass/reject)
-TObjString*         fChunkFileName = 0x0; // current file name
 Int_t               fEventInFile; // current event number in the file
 Int_t               fRunNumber; // run number
 UInt_t              fPeriod; // run period
@@ -31,40 +30,37 @@ Int_t               fNumContrSPD; // number of contributors to SPD vertex
 Int_t               fNumTracklets; // number of tracklets
 Int_t               fNumTracks; // number of tracks
 Int_t               fNumTracksRefMult08; //
-Int_t               fNumTracksMultKatarina; //
 TBits*              fFiredChipMap = 0x0; // map of fired chips (at least one cluster)
 TBits*              fFiredChipMapFO = 0x0; // map of fired FastOr chips
 Int_t               fNumITSCls[6]; // number of ITS clusters per layer
 Int_t               fTriggerMaskTOF[72]; // TOF trigger mask array
+Int_t               fNumberTOFcls; // number of reconstructed TOF clusters
+Int_t               fNumberTOFtrgPads; // number of reconstructed trigger pads
+Int_t               fNumberTOFmaxipads; // number of TOF trigger pads on
 Float_t             fV0ATotMult; // total multiplicity in V0A
 Float_t             fV0CTotMult; // total multiplicity in V0C
 UShort_t            fV0ATriggerCharge; // online (trigger) charge in V0A
 UShort_t            fV0CTriggerCharge; // online (trigger) charge in V0C
-Float_t             fV0AMult[32]; // multiplicity in V0A cells
-Float_t             fV0CMult[32];  // multiplicity in V0C cells
+// Float_t             fV0AMult[32]; // multiplicity in V0A cells
+// Float_t             fV0CMult[32];  // multiplicity in V0C cells
 Float_t             fV0ATime; // average time in V0A
 Float_t             fV0CTime; // average time in V0C
 Bool_t              fV0PastFutureFilled; // flag for AliVZERO::kPastFutureFlagsFilled bit
 Bool_t              fV0PastFuturePileUp; // flag for V0 past-future protection (true if pileup)
-Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
-Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
-Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
-Bool_t              fV0CTriggerBG[32]; // offline beam-gas flag in V0C cells
+// Bool_t              fV0ATriggerBB[32]; // offline beam-beam flag in V0A cells
+// Bool_t              fV0CTriggerBB[32]; // ffline beam-beam flag in V0C cells
+// Bool_t              fV0ATriggerBG[32]; // offline beam-gas flag in V0A cells
+// Bool_t              fV0CTriggerBG[32]; // offline beam-gas flag in V0C cells
 UInt_t              fV0AFlagsBB; // Number of total online beam-beam flags in V0A
 UInt_t              fV0CFlagsBB; // Number of total online beam-beam flags in V0C
 UInt_t              fV0AFlagsBG; // Number of total online beam-gas flags in V0A
 UInt_t              fV0CFlagsBG; // Number of total online beam-gas flags in V0C
-Bool_t              fV0FlagBB[64]; // online beam-beam flag in V0 (V0C 0-31, V0A 32-63) cells
-Bool_t              fV0FlagBG[64]; // online beam-gas flag in V0 (V0C 0-31, V0A 32-63) cells
-Bool_t              fV0FlagPFBB[64][21]; // beam-beam flag for V0 cells and clocks
-Bool_t              fV0FlagPFBG[64][21]; // beam-gas flag for V0 cells and clocks
 Char_t              fV0ADecision; // final V0A decision
 Char_t              fV0CDecision;  // final V0C decision
 Double_t            fVtxX; // primary vertex x-coordinate
 Double_t            fVtxY; // primary vertex y-coordinate
 Double_t            fVtxZ; // primary vertex z-coordinate
 Bool_t              fVtxTPC; // primary vertex reconstructed with TPC (not SPDVertex)
-TArrayD*            fTracksPt = 0x0; // binned tracks pt
 
 Int_t iNumFOonline = 0;
 Int_t iNumFOoffline = 0;
@@ -76,23 +72,24 @@ enum eEventType { kAll = 0, kCINT7, kCVHMSH2, kCINT7_PhysSel, kCVHMSH2_PhysSel};
 
 TList* listOut[iNumTypes];
 
-
 TH1D* hEventCounter;
+TH1D* hPFPUCounter;
+TH2D* hEventPerRunCounter;
 
+TH1D* hTriggerClasses[iNumTypes];
 TH1D* hDistNtrklets[iNumTypes];
 TH1D* hDistNtrks[iNumTypes];
-TH1D* hDistNtrks08pt[iNumTypes];
 TH1D* hDistRefMult08[iNumTypes];
 TH1D* hDistFOonline[iNumTypes];
 TH1D* hDistFOoffline[iNumTypes];
+TH2D* hDistFOonlinePerRun[iNumTypes];
+TH2D* hDistFOofflinePerRun[iNumTypes];
 
 // 2D mult correlations
 TH2D* h2_FOonline_Ntrklets[iNumTypes];
 TH2D* h2_FOonline_Ntrks[iNumTypes];
-TH2D* h2_FOonline_Ntrks08pt[iNumTypes];
 TH2D* h2_FOonline_RefMult08[iNumTypes];
 
-Bool_t PastFutureProtection();
 Bool_t CheckTriggerConsistency();
 void CreateHistos();
 void FillCommonHistos(eEventType type);
@@ -101,15 +98,27 @@ Bool_t LoadTTreeVars();
 void SkimForSPDHM()
 {
   Int_t iNumEventsToProcess = 0;
-  // Int_t iNumEventsToProcess = 2000000;
-  // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
-  TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/16k-merged/";
+  // Int_t iNumEventsToProcess = 1000000;
+  // Int_t iNumEventsToProcess = 200000;
+
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/17o/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/16k-merged/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
+
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
   TString sInFileName = "AnalysisResults.root";
-  TString sOutFileName = "Skimmed_HMwithPFPU.root";
+  TString sOutFileName = "Skimmed_fishyexcl.root";
+  // TString sOutFileName = "Skimmed.root";
+  // TString sOutFileName = "Skimmed_noPFPU.root";
+  // TString sOutFileName = "Skimmed_HMwithPFPU_wo287064.root";
+  // TString sOutFileName = "Skimmed_HMwithPFPU.root";
+  // TString sOutFileName = "Skimmed_test.root";
+  // TString sOutFileName = "Skimmed_987b.root";
+  // TString sOutFileName = "Skimmed_2556b.root";
 
   // ===============================================================================
-
-  CreateHistos();
 
   // openning input & output file
   TString sInputFile = sPath + sInFileName;
@@ -120,6 +129,8 @@ void SkimForSPDHM()
 
   TFile* fInputFile = new TFile(sInputFile.Data(),"READ");
   if(!fInputFile->IsOpen()) { printf(" ERROR: fInputFile not open!\n"); return; }
+
+  CreateHistos();
 
   // loading TTree variables
   fInputFile->cd("FilterTrig");
@@ -145,15 +156,44 @@ void SkimForSPDHM()
     if( (i % 100000) == 0) printf("=== Procesed %d out of %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
     hEventCounter->Fill("Input",1);
+    hEventPerRunCounter->Fill(Form("%d",fRunNumber),"Input",1);
 
-    if(fRunNumber > 281892 && fRunNumber < 281916) continue;
+    // issue in 18f with OFO bellow 85
+    if(fRunNumber == 287064) { continue; }
+
+    // trigger setting: pp2018_HighRateTest (v9) - not relevant
+    if(fRunNumber == 287616) { continue; }
+
+    // pp2018_Rare_987b
+    // if(fRunNumber < 287323) continue;
+
+    // pp2018_Rare_2556b
+    // if(fRunNumber > 287283) continue;
+
+    // 18m/muon_calo : fishy runs with offline FO shifted
+    if(fRunNumber >= 290611 && fRunNumber <= 290615) { continue; }
+    if(fRunNumber == 291262) { continue; }
 
     // trigger part
-    Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B");
+    Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B-NOPF-CENT");
     Bool_t bIsCVHMSH2 = fClassesFired->String().Contains("CVHMSH2-B");
     Bool_t bIsConsist = CheckTriggerConsistency();
-    Bool_t bPFPU = PastFutureProtection();
-    // if(bPFPU) { printf("PFPU\n"); continue; }
+    Bool_t bPFPUFilled = fV0PastFutureFilled;
+    Bool_t bPFPU = fV0PastFuturePileUp;
+
+    if(bIsCINT7)
+    {
+      hEventPerRunCounter->Fill(Form("%d",fRunNumber),"CINT7-B",1);
+      if(fClassesFired->String().Contains("CENTNOTRD")) { hTriggerClasses[kCINT7]->Fill("CENTNOTRD",1); }
+      else if(fClassesFired->String().Contains("CENT")) { hTriggerClasses[kCINT7]->Fill("CENT",1); }
+      if(fClassesFired->String().Contains("MUFAST")) hTriggerClasses[kCINT7]->Fill("MUFAST",1);
+    }
+    if(bIsCVHMSH2)
+    {
+      hPFPUCounter->Fill("CVHMSH2-B",1);
+      hEventPerRunCounter->Fill(Form("%d",fRunNumber),"CVHMSH2",1);
+      if(bPFPU && bPFPUFilled) { hPFPUCounter->Fill("CVHMSH2 && PFPU && filled",1); }
+    }
 
     bIsCVHMSH2 = bIsCVHMSH2 && !bPFPU;
 
@@ -174,53 +214,12 @@ void SkimForSPDHM()
   }
 
   fOutputFile->cd();
+  hEventCounter->Write();
+  hEventPerRunCounter->Write();
+  hPFPUCounter->Write();
   for(Int_t iType(0); iType < iNumTypes; ++iType) { listOut[iType]->Write(Form("list_%s",sTypeLabels[iType].Data()),TObject::kSingleKey); }
 
   return;
-}
-// =====================================================================================================================
-Bool_t PastFutureProtection()
-{
-  // past-future protection
-
-  Bool_t bV0PFPileup = kFALSE;
-
-  Int_t fVIRBBAflags = 10;
-  Int_t fVIRBBCflags = 10;
-  Int_t fVIRBGAflags = 33;
-  Int_t fVIRBGCflags = 33;
-
-  Bool_t vir[21] = {0};
-
-  for (Int_t bc = 0; bc < 21; bc++)
-  {
-    UChar_t nBBA = 0;
-    UChar_t nBBC = 0;
-    UChar_t nBGA = 0;
-    UChar_t nBGC = 0;
-
-    if (fVIRBBAflags<33) for (Int_t j=0;j<32;j++) nBBA += fV0FlagPFBB[j+32][bc];
-    if (fVIRBBCflags<33) for (Int_t j=0;j<32;j++) nBBC += fV0FlagPFBB[j][bc];
-    if (fVIRBGAflags<33) for (Int_t j=0;j<32;j++) nBGA += fV0FlagPFBG[j+32][bc];
-    if (fVIRBGCflags<33) for (Int_t j=0;j<32;j++) nBGC += fV0FlagPFBG[j][bc];
-
-    vir[bc] |= nBBA>=fVIRBBAflags;
-    vir[bc] |= nBBC>=fVIRBBCflags;
-    vir[bc] |= nBGA>=fVIRBGAflags;
-    vir[bc] |= nBGC>=fVIRBGCflags;
-  }
-
-  Int_t bcMin = 3; //10 - fNBCsFuture + bcMod4;
-  Int_t bcMax = 17; //10 + fNBCsPast + bcMod4;
-  for (Int_t bc=bcMin;bc<=bcMax;bc++)
-  {
-    if (bc==10) continue; // skip current bc
-    if (bc < 0) continue;
-    if (bc >20) continue;
-    if (vir[bc]) bV0PFPileup = kTRUE;
-  }
-
-  return bV0PFPileup;
 }
 // =====================================================================================================================
 Bool_t CheckTriggerConsistency()
@@ -253,6 +252,9 @@ Bool_t CheckTriggerConsistency()
 void CreateHistos()
 {
   hEventCounter = new TH1D("hEventCounter", "hEventCounter", 1,0,1);
+  hEventPerRunCounter = new TH2D("hEventPerRunCounter", "hEventPerRunCounter", 1,0,1, 1,0,1);
+  hPFPUCounter = new TH1D("hPFPUCounter", "hPFPUCounter", 1,0,1);
+
 
   for(Int_t iType(0); iType < iNumTypes; ++iType)
   {
@@ -266,25 +268,30 @@ void CreateHistos()
     Int_t iRefMultBins = 100; Int_t iRefMultLow = 0; Int_t iRefMultHigh = 2000;
     Int_t iNtrkletsBins = 100; Int_t iNtrkletsLow = 0; Int_t iNtrkletsHigh = 4000;
 
-    if(iType == kCINT7_PhysSel || iType == kCVHMSH2_PhysSel || iType == kCVHMSH2)
+    if(iType != kCINT7)
     {
-      iFOonlineBins = 200; iFOonlineLow = 0; iFOonlineHigh = 200;
+      iFOonlineBins = 800; iFOonlineLow = 0; iFOonlineHigh = 800;
       iRefMultBins = 200;  iRefMultLow = 0;  iRefMultHigh = 200;
       iNtrkletsBins = 200; iNtrkletsLow = 0; iNtrkletsHigh = 200;
     }
 
+    // trigger classes
+    hTriggerClasses[iType] = new TH1D(Form("hTriggerClasses_%s",sLabel.Data()), Form("hTriggerClasses_%s;",sLabel.Data()), 1,0,1);
+    list->Add(hTriggerClasses[iType]);
     // Distributions
+    hDistFOonlinePerRun[iType] = new TH2D(Form("hDistFOonlinePerRun_%s",sLabel.Data()), Form("hDistFOonlinePerRun%s; FO online; Run",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 1,0,1);
+    list->Add(hDistFOonlinePerRun[iType]);
+    hDistFOofflinePerRun[iType] = new TH2D(Form("hDistFOofflinePerRun_%s",sLabel.Data()), Form("hDistFOofflinePerRun%s; FO offline; Run",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 1,0,1);
+    list->Add(hDistFOofflinePerRun[iType]);
     hDistNtrklets[iType] = new TH1D(Form("hDistNtrklets_%s",sLabel.Data()), Form("hDistNtrklets_%s; N_{tracklets}",sLabel.Data()), iNtrkletsBins, iNtrkletsLow, iNtrkletsHigh);
     list->Add(hDistNtrklets[iType]);
     hDistNtrks[iType] = new TH1D(Form("hDistNtrks_%s",sLabel.Data()), Form("hDistNtrks_%s; N_{tracks};",sLabel.Data()), 100,0,5000);
     list->Add(hDistNtrks[iType]);
-    hDistNtrks08pt[iType] = new TH1D(Form("hDistNtrks08pt_%s",sLabel.Data()), Form("hDistNtrks08pt_%s; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c});",sLabel.Data()), 100,0,1000);
-    list->Add(hDistNtrks08pt[iType]);
     hDistRefMult08[iType] = new TH1D(Form("hDistRefMult08_%s",sLabel.Data()), Form("hDistRefMult08_%s; RefMult08;",sLabel.Data()), iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(hDistRefMult08[iType]);
-    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), 100,0,1000);
+    hDistFOonline[iType] = new TH1D(Form("hDistFOonline_%s",sLabel.Data()), Form("hDistFOonline_%s; FO online; Counts",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh);
     list->Add(hDistFOonline[iType]);
-    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), 100,0,1000);
+    hDistFOoffline[iType] = new TH1D(Form("hDistFOoffline_%s",sLabel.Data()), Form("hDistFOoffline_%s; FO offline; Counts",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh);
     list->Add(hDistFOoffline[iType]);
 
 
@@ -292,8 +299,6 @@ void CreateHistos()
     list->Add(h2_FOonline_Ntrklets[iType]);
     h2_FOonline_Ntrks[iType] = new TH2D(Form("h2_FOonline_Ntrks_%s",sLabel.Data()), Form("h2_FOonline_Ntrks_%s; FO online; N_{tracks}",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 100,0,5000);
     list->Add(h2_FOonline_Ntrks[iType]);
-    h2_FOonline_Ntrks08pt[iType] = new TH2D(Form("h2_FOonline_Ntrks08pt_%s",sLabel.Data()), Form("h2_FOonline_Ntrks08pt_%s; FO online; N_{tracks}(|#eta|<0.8, 0.2 #it{p}_{T} < 3 GeV/#it{c})",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, 100,0,1000);
-    list->Add(h2_FOonline_Ntrks08pt[iType]);
     h2_FOonline_RefMult08[iType] = new TH2D(Form("h2_FOonline_RefMult08_%s",sLabel.Data()), Form("h2_FOonline_RefMult08_%s; FO online; RefMult08",sLabel.Data()), iFOonlineBins,iFOonlineLow,iFOonlineHigh, iRefMultBins,iRefMultLow,iRefMultHigh);
     list->Add(h2_FOonline_RefMult08[iType]);
 
@@ -306,16 +311,17 @@ void FillCommonHistos(eEventType iType)
 {
   hDistNtrklets[iType]->Fill(fNumTracklets);
   hDistNtrks[iType]->Fill(fNumTracks);
-  hDistNtrks08pt[iType]->Fill(fNumTracksMultKatarina);
   hDistRefMult08[iType]->Fill(fNumTracksRefMult08);
 
   hDistFOonline[iType]->Fill(iNumFOonline);
   hDistFOoffline[iType]->Fill(iNumFOoffline);
 
+  hDistFOonlinePerRun[iType]->Fill(iNumFOonline, Form("%d",fRunNumber), 1);
+  hDistFOofflinePerRun[iType]->Fill(iNumFOoffline, Form("%d",fRunNumber), 1);
+
   // 2D mult correlations
   h2_FOonline_Ntrklets[iType]->Fill(iNumFOonline,fNumTracklets);
   h2_FOonline_Ntrks[iType]->Fill(iNumFOonline,fNumTracks);
-  h2_FOonline_Ntrks08pt[iType]->Fill(iNumFOonline,fNumTracksMultKatarina);
   h2_FOonline_RefMult08[iType]->Fill(iNumFOonline,fNumTracksRefMult08);
 
   return;
@@ -330,7 +336,6 @@ Bool_t LoadTTreeVars()
   eventTree->SetBranchAddress("fPhysSelDecision",&fPhysSelDecision);
   eventTree->SetBranchAddress("fPhysSelPassed",&fPhysSelPassed);
   eventTree->SetBranchAddress("fEventCutsPassed",&fEventCutsPassed);
-  eventTree->SetBranchAddress("fChunkFileName",&fChunkFileName);
   eventTree->SetBranchAddress("fEventInFile",&fEventInFile);
   eventTree->SetBranchAddress("fRunNumber",&fRunNumber);
   eventTree->SetBranchAddress("fPeriod",&fPeriod);
@@ -344,7 +349,6 @@ Bool_t LoadTTreeVars()
   eventTree->SetBranchAddress("fNumContrSPD",&fNumContrSPD);
   eventTree->SetBranchAddress("fNumTracklets",&fNumTracklets);
   eventTree->SetBranchAddress("fNumTracksRefMult08",&fNumTracksRefMult08);
-  eventTree->SetBranchAddress("fNumTracksMultKatarina",&fNumTracksMultKatarina);
   eventTree->SetBranchAddress("fFiredChipMap",&fFiredChipMap);
   eventTree->SetBranchAddress("fFiredChipMapFO",&fFiredChipMapFO);
   eventTree->SetBranchAddress("fNumITSCls",fNumITSCls);
@@ -355,22 +359,18 @@ Bool_t LoadTTreeVars()
   eventTree->SetBranchAddress("fV0CTriggerCharge",&fV0CTriggerCharge);
   eventTree->SetBranchAddress("fV0ATime",&fV0ATime);
   eventTree->SetBranchAddress("fV0CTime",&fV0CTime);
-  eventTree->SetBranchAddress("fV0AMult",fV0AMult);
-  eventTree->SetBranchAddress("fV0CMult",fV0CMult);
+  // eventTree->SetBranchAddress("fV0AMult",fV0AMult);
+  // eventTree->SetBranchAddress("fV0CMult",fV0CMult);
   eventTree->SetBranchAddress("fV0PastFuturePileUp",&fV0PastFuturePileUp);
   eventTree->SetBranchAddress("fV0PastFutureFilled",&fV0PastFutureFilled);
-  eventTree->SetBranchAddress("fV0ATriggerBB",fV0ATriggerBB);
-  eventTree->SetBranchAddress("fV0ATriggerBG",fV0ATriggerBG);
-  eventTree->SetBranchAddress("fV0CTriggerBG",fV0ATriggerBG);
-  eventTree->SetBranchAddress("fV0CTriggerBB",fV0ATriggerBB);
+  // eventTree->SetBranchAddress("fV0ATriggerBB",fV0ATriggerBB);
+  // eventTree->SetBranchAddress("fV0ATriggerBG",fV0ATriggerBG);
+  // eventTree->SetBranchAddress("fV0CTriggerBG",fV0ATriggerBG);
+  // eventTree->SetBranchAddress("fV0CTriggerBB",fV0ATriggerBB);
   eventTree->SetBranchAddress("fV0AFlagsBB",&fV0AFlagsBB);
   eventTree->SetBranchAddress("fV0CFlagsBB",&fV0CFlagsBB);
   eventTree->SetBranchAddress("fV0AFlagsBG",&fV0AFlagsBG);
   eventTree->SetBranchAddress("fV0CFlagsBG",&fV0CFlagsBG);
-  eventTree->SetBranchAddress("fV0FlagBB",fV0FlagBB);
-  eventTree->SetBranchAddress("fV0FlagBG",fV0FlagBG);
-  eventTree->SetBranchAddress("fV0FlagPFBB",fV0FlagPFBB);
-  eventTree->SetBranchAddress("fV0FlagPFBG",fV0FlagPFBG);
   eventTree->SetBranchAddress("fV0ADecision",&fV0ADecision);
   eventTree->SetBranchAddress("fV0CDecision",&fV0CDecision);
   eventTree->SetBranchAddress("fVtxX",&fVtxX);
@@ -378,7 +378,6 @@ Bool_t LoadTTreeVars()
   eventTree->SetBranchAddress("fVtxZ",&fVtxZ);
   eventTree->SetBranchAddress("fVtxTPC",&fVtxTPC);
   eventTree->SetBranchAddress("fNumTracks",&fNumTracks);
-  eventTree->SetBranchAddress("fTracksPt",&fTracksPt);
 
   return kTRUE;
 }
