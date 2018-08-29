@@ -49,8 +49,27 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 void CheckCVHMSH2()
 {
   TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
-  TString sInFileName = "Skimmed_fishyexcl.root";
-  TString sOutputPath = sPath + "/check_fishyexcl/";
+  // TString sInFileName = "Skimmed_from_291285.root";
+  // TString sOutputPath = sPath + "/check_from_291285/";
+  // Double_t dDownscaling = 0.295/0.00245;
+  TString sInFileName = "Skimmed_upto_290501.root";
+  TString sOutputPath = sPath + "/check_upto_290501/";
+  Double_t dDownscaling = 0.295/0.00245;
+  // TString sInFileName = "Skimmed_290411_290501.root";
+  // TString sOutputPath = sPath + "/check_290411_290501/";
+  // Double_t dDownscaling = 0.295/0.00245;
+  // TString sInFileName = "Skimmed_290538_291284.root";
+  // TString sOutputPath = sPath + "/check_290538_291284/";
+  // Double_t dDownscaling = 0.295/0.00245;
+
+  // TString sInFileName = "Skimmed_from_291285.root";
+  // TString sOutputPath = sPath + "/check_from_291285/";
+  // Double_t dDownscaling = 0.295/0.00245;
+
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18l-muon_calo/";
+  // TString sInFileName = "Skimmed.root";
+  // TString sOutputPath = sPath + "/check/";
+  // Double_t dDownscaling = 0.295/0.0027;
 
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
   // TString sInFileName = "Skimmed_HMwithPFPU.root";
@@ -66,7 +85,7 @@ void CheckCVHMSH2()
 
   // Double_t dDownscaling = 1.0;
   // Double_t dDownscaling = 0.295/0.00203;
-  Double_t dDownscaling = 0.295/0.00245;
+  // Double_t dDownscaling = 0.295/0.00245;
 
 
   // ===============================================================================

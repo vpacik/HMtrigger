@@ -106,10 +106,15 @@ void SkimForSPDHM()
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-pass1_uncal/";
   TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18l-muon_calo/";
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/newTask/";
-  TString sInFileName = "AnalysisResults.root";
-  TString sOutFileName = "Skimmed_fishyexcl.root";
+  // TString sInFileName = "AnalysisResults_from_291285.root";
+  // TString sOutFileName = "Skimmed_from_291285.root";
+  // TString sInFileName = "AnalysisResults_290399_291284.root";
+  // TString sOutFileName = "Skimmed_290411_290501.root";
+  TString sInFileName = "AnalysisResults_290399_291284.root";
+  TString sOutFileName = "Skimmed_290538_291284.root";
   // TString sOutFileName = "Skimmed.root";
   // TString sOutFileName = "Skimmed_noPFPU.root";
   // TString sOutFileName = "Skimmed_HMwithPFPU_wo287064.root";
