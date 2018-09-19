@@ -160,8 +160,6 @@ void SkimForSPDHM()
   {
     if( (i % 100000) == 0) printf("=== Procesed %d out of %d events === \n",i,numEvents);
     eventTree->GetEvent(i);
-    hEventCounter->Fill("Input",1);
-    hEventPerRunCounter->Fill(Form("%d",fRunNumber),"Input",1);
 
     // issue in 18f with OFO bellow 85
     if(fRunNumber == 287064) { continue; }
@@ -173,11 +171,15 @@ void SkimForSPDHM()
     // if(fRunNumber < 287323) continue;
 
     // pp2018_Rare_2556b
-    // if(fRunNumber > 287283) continue;
+    if(fRunNumber == 287283) continue;
+    if(fRunNumber > 287283) continue;
 
     // 18m/muon_calo : fishy runs with offline FO shifted
     if(fRunNumber >= 290611 && fRunNumber <= 290615) { continue; }
     if(fRunNumber == 291262) { continue; }
+
+    hEventCounter->Fill("Input",1);
+    hEventPerRunCounter->Fill(Form("%d",fRunNumber),"Input",1);
 
     // trigger part
     Bool_t bIsCINT7 = fClassesFired->String().Contains("CINT7-B-NOPF-CENT");

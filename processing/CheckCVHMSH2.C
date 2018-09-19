@@ -48,18 +48,20 @@ Double_t GetTurnOn(TH1D* mult, Int_t threshold);
 
 void CheckCVHMSH2()
 {
-  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
+  Double_t dEffThrs = 0.9; // efficiency threshold for turn-on estimation
+
+  // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18m-muon_calo/";
   // TString sInFileName = "Skimmed_from_291285.root";
-  // TString sOutputPath = sPath + "/check_from_291285/";
+  // TString sOutputPath = sPath + "/eff_90/check_from_291285/";
   // Double_t dDownscaling = 0.295/0.00245;
-  TString sInFileName = "Skimmed_upto_290501.root";
-  TString sOutputPath = sPath + "/check_upto_290501/";
-  Double_t dDownscaling = 0.295/0.00245;
+  // TString sInFileName = "Skimmed_upto_290501.root";
+  // TString sOutputPath = sPath + "/eff_90/check_upto_290501/";
+  // Double_t dDownscaling = 0.295/0.00245;
   // TString sInFileName = "Skimmed_290411_290501.root";
   // TString sOutputPath = sPath + "/check_290411_290501/";
-  // Double_t dDownscaling = 0.295/0.00245;
+  // // Double_t dDownscaling = 0.295/0.00245;
   // TString sInFileName = "Skimmed_290538_291284.root";
-  // TString sOutputPath = sPath + "/check_290538_291284/";
+  // TString sOutputPath = sPath + "/eff_90/check_290538_291284/";
   // Double_t dDownscaling = 0.295/0.00245;
 
   // TString sInFileName = "Skimmed_from_291285.root";
@@ -68,7 +70,7 @@ void CheckCVHMSH2()
 
   // TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18l-muon_calo/";
   // TString sInFileName = "Skimmed.root";
-  // TString sOutputPath = sPath + "/check/";
+  // TString sOutputPath = sPath + "/eff_90/check/";
   // Double_t dDownscaling = 0.295/0.0027;
 
   // TString sPath = "/Users/vpacik/NBI/ALICE/HMtrigger/running/17o/";
@@ -78,14 +80,15 @@ void CheckCVHMSH2()
   // TString sInFileName = "Skimmed_287323_287325.root";
   // TString sOutputPath = sPath + "/check_287323_287325/";
 
+  TString sPath = "/Users/vpacik/Codes/ALICE/HMtrigger/running/18f-muon_calo/";
   // TString sInFileName = "Skimmed_987b.root";
   // TString sOutputPath = sPath + "/check_987b/";
-  // TString sInFileName = "Skimmed_2556b.root";
-  // TString sOutputPath = sPath + "/check_2556b/";
+  TString sInFileName = "Skimmed_2556b.root";
+  TString sOutputPath = sPath + "/eff_90/check_2556b/";
+  Double_t dDownscaling = 0.28/0.0027;
 
   // Double_t dDownscaling = 1.0;
   // Double_t dDownscaling = 0.295/0.00203;
-  // Double_t dDownscaling = 0.295/0.00245;
 
 
   // ===============================================================================
@@ -181,7 +184,7 @@ void CheckCVHMSH2()
 
     for(Int_t iCut(0); iCut < iNumCutOFonline; ++iCut)
     {
-      Int_t iThrsOFObin = hEff[iMult][iType][iCut]->FindFirstBinAbove(0.95);
+      Int_t iThrsOFObin = hEff[iMult][iType][iCut]->FindFirstBinAbove(dEffThrs);
       Int_t iThrsOFO = hEff[iMult][iType][iCut]->GetBinCenter(iThrsOFObin);
       Double_t dTurnOn = GetTurnOn(hDistMult[iMult][iType][iCut], iThrsOFObin);
       printf("Cut %d | Thrs %d (bin %d) | TurnOn %f \n", iCutOFonline[iCut], iThrsOFO, iThrsOFObin, dTurnOn);
@@ -230,7 +233,7 @@ void CheckCVHMSH2()
 
       hEff[iMult][iType][iCut]->Draw("same");
     }
-    line->DrawLine(0,0.95,120,0.95);
+    line->DrawLine(0,dEffThrs,120,dEffThrs);
     legThrs->Draw();
     canEff->cd(3);
     TH1* frame_canEff_3 = (TH1*) gPad->DrawFrame(iCutOFonline[0]-5,0.0,iCutOFonline[iNumCutOFonline-1]+5,0.50);
