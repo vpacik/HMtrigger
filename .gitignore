@@ -16,6 +16,7 @@
 ### ROOT specific ###
 *.root
 *.jdl
+*.pcm
 *_merge.C
 *_merge.sh
 *_validation.sh
